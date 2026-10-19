@@ -1,28 +1,13 @@
 #!/data/data/com.termux/files/usr/bin/bash
-# doctrine-duel-qx setup v1. Safe to run again: it reuses everything that already exists.
+# doctrine-duel-qx setup v2. Safe to run again: it reuses everything that already exists.
 set -e
 ROOT="$HOME/doctrine-duel-qx"
-TB="$HOME/2026-10-18-orange-testbed"
 SERVICE="doctrine-duel-qx-api"
 gen(){ node -e 'console.log(require("crypto").randomBytes(24).toString("hex"))'; }
 
 echo ""
-echo "Step: test bed server settings"
-[ -d "$TB/.git" ] || git clone -q https://github.com/sudosilo/2026-10-18-orange-testbed "$TB"
-cd "$TB"
-[ -f .vercel/project.json ] || vercel link --yes --project 2026-10-18-orange-testbed >/dev/null 2>&1 || true
-rm -f .env.dq
-vercel env pull .env.dq --environment=production --yes >/dev/null 2>&1 || true
-val(){ grep "^$1=" .env.dq 2>/dev/null | head -1 | cut -d= -f2- | sed 's/^"//;s/"$//'; }
-JOIN=$(val JOIN_CODE); KS=$(val KEY_SECRET); GT=$(val GITHUB_TOKEN)
-rm -f .env.dq
-CHANGED=0
-setv(){ vercel env rm "$1" production --yes >/dev/null 2>&1 || true; printf %s "$2" | vercel env add "$1" production >/dev/null 2>&1 || true; CHANGED=1; }
-if [ -z "$JOIN" ]; then JOIN=$(gen); setv JOIN_CODE "$JOIN"; fi
-if [ -z "$KS" ]; then setv KEY_SECRET "$(gen)"; fi
-if [ -z "$GT" ]; then setv GITHUB_TOKEN "$(gh auth token)"; fi
-if [ "$CHANGED" = 1 ]; then echo "Redeploying the test bed with its settings"; vercel --prod --yes >/dev/null 2>&1 || true; fi
-
+echo "Step: test bed join code"
+JOIN="${TESTBED_JOIN_CODE:-}"
 echo ""
 echo "Step: Anthropic key"
 AK=""
@@ -44,6 +29,8 @@ railway status >/dev/null 2>&1 || railway init --name doctrine-duel-qx
 railway service list --json 2>/dev/null | grep -q '"Redis"' || railway add --database redis
 railway service list --json 2>/dev/null | grep -q "\"$SERVICE\"" || railway add --service "$SERVICE"
 DASH=$(railway variables --service "$SERVICE" --kv 2>/dev/null | grep '^DASH_KEY=' | cut -d= -f2- || true)
+[ -n "$JOIN" ] || JOIN=$(railway variables --service "$SERVICE" --kv 2>/dev/null | grep '^TESTBED_JOIN_CODE=' | cut -d= -f2- || true)
+if [ -z "$JOIN" ]; then read -rp "Paste the test bed join code and press enter: " JOIN; fi
 [ -n "$DASH" ] || DASH=$(gen)
 railway variables --service "$SERVICE" \
   --set 'REDIS_URL=${{Redis.REDIS_URL}}' \

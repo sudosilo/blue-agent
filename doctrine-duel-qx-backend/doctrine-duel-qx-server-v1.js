@@ -183,7 +183,7 @@ const TOOLS = [
   { name: 'finish', description: 'End your turn for today with a short summary of what you did and why.', input_schema: { type: 'object', properties: { summary: { type: 'string' } }, required: ['summary'] } }
 ];
 
-const CORE_PATHS = /^(engine\.js|index\.html|testbed\.json|agent-rules\.txt|steward-rules\.txt|vercel\.json|package\.json|api\/|scripts\/)/;
+const CORE_PATHS = /^(\.github\/|engine\.js|index\.html|testbed\.json|agent-rules\.txt|steward-rules\.txt|vercel\.json|package\.json|api\/|scripts\/)/;
 const PRIV_TOOL = /^(steward_|judge_)/;
 
 // ---------- runs ----------
