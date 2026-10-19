@@ -28,7 +28,7 @@ cd "$ROOT/doctrine-duel-qx-backend"
 if ! railway status --json 2>/dev/null | grep -q '"doctrine-duel-qx"'; then railway init --name doctrine-duel-qx; fi
 if ! railway status --json 2>/dev/null | grep -q '"doctrine-duel-qx"'; then echo "Railway did not link the doctrine-duel-qx project to this folder"; exit 1; fi
 railway service list --json 2>/dev/null | grep -q '"Redis"' || railway add --database redis
-railway service list --json 2>/dev/null | grep -q "\"$SERVICE\"" || railway add --service "$SERVICE"
+railway service list --json 2>/dev/null | grep -q "\"$SERVICE\"" || railway add --service "$SERVICE" --variables PORT=8080
 DASH=$(railway variables --service "$SERVICE" --kv 2>/dev/null | grep '^DASH_KEY=' | cut -d= -f2- || true)
 [ -n "$JOIN" ] || JOIN=$(railway variables --service "$SERVICE" --kv 2>/dev/null | grep '^TESTBED_JOIN_CODE=' | cut -d= -f2- || true)
 if [ -z "$JOIN" ]; then read -rp "Paste the test bed join code and press enter: " JOIN; fi
