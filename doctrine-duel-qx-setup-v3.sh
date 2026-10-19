@@ -1,5 +1,5 @@
 #!/data/data/com.termux/files/usr/bin/bash
-# doctrine-duel-qx setup v2. Safe to run again: it reuses everything that already exists.
+# doctrine-duel-qx setup v3. Safe to run again: it reuses everything that already exists.
 set -e
 ROOT="$HOME/doctrine-duel-qx"
 SERVICE="doctrine-duel-qx-api"
@@ -25,7 +25,8 @@ if [ -z "$AK" ]; then read -rp "Paste your Anthropic API key and press enter: " 
 echo ""
 echo "Step: Railway runner"
 cd "$ROOT/doctrine-duel-qx-backend"
-railway status >/dev/null 2>&1 || railway init --name doctrine-duel-qx
+if ! railway status --json 2>/dev/null | grep -q '"doctrine-duel-qx"'; then railway init --name doctrine-duel-qx; fi
+if ! railway status --json 2>/dev/null | grep -q '"doctrine-duel-qx"'; then echo "Railway did not link the doctrine-duel-qx project to this folder"; exit 1; fi
 railway service list --json 2>/dev/null | grep -q '"Redis"' || railway add --database redis
 railway service list --json 2>/dev/null | grep -q "\"$SERVICE\"" || railway add --service "$SERVICE"
 DASH=$(railway variables --service "$SERVICE" --kv 2>/dev/null | grep '^DASH_KEY=' | cut -d= -f2- || true)
