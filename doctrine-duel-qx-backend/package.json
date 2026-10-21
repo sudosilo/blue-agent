@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "main": "doctrine-duel-qx-server-v1.js",
+  "main": "doctrine-duel-qx-server-v2.js",
   "scripts": {
-    "start": "node doctrine-duel-qx-server-v1.js"
+    "start": "node doctrine-duel-qx-server-v2.js"
   },
   "engines": {
     "node": ">=20"

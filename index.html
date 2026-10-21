@@ -191,13 +191,13 @@ async requests(){
 },
 async auto(){
   meta=null;const m=await getMeta();const d=await api('/api/doctrines');const s=m.settings;
-  $('#view').innerHTML='<div class="card"><h2>Daily play</h2><p class="muted">When on, every chosen doctrine plays once per UTC day, one after another, starting at the chosen UTC hour.</p>'+
+  $('#view').innerHTML='<div class="card"><h2>Daily play</h2><p class="muted">When on, every chosen doctrine plays once at each play time, one after another. Times are UTC hours, so Arizona time plus seven.</p>'+
     '<label>Status</label><select id="aa"><option value="0"'+(s.autoDaily?'':' selected')+'>Off</option><option value="1"'+(s.autoDaily?' selected':'')+'>On</option></select>'+
-    '<label>Start hour, UTC</label><input id="ah" type="number" min="0" max="23" value="'+esc(s.hourUtc)+'">'+
+    '<label>Play times, UTC hours separated by spaces</label><input id="ah" inputmode="numeric" value="'+esc((s.hoursUtc||[]).join(' '))+'">'+
     '<label>Model</label><select id="am">'+m.models.map(x=>'<option'+(x===s.model?' selected':'')+'>'+esc(x)+'</option>').join('')+'</select>'+
     '<label>Doctrines (none checked means all)</label>'+d.doctrines.map(x=>'<label style="font-weight:400"><input type="checkbox" style="width:auto" value="'+esc(x.slug)+'"'+(s.doctrines.includes(x.slug)?' checked':'')+'> '+esc(x.slug)+'</label>').join('')+
     '<div class="row" style="margin-top:12px"><button class="go" id="as">Save</button></div></div>';
-  $('#as').onclick=async()=>{try{await api('/api/settings',{method:'POST',body:JSON.stringify({autoDaily:$('#aa').value==='1',hourUtc:parseInt($('#ah').value,10),model:$('#am').value,doctrines:[...document.querySelectorAll('input[type=checkbox]:checked')].map(x=>x.value)})});meta=null;toast('Saved')}catch(e){toast(e.message)}};
+  $('#as').onclick=async()=>{try{await api('/api/settings',{method:'POST',body:JSON.stringify({autoDaily:$('#aa').value==='1',hoursUtc:$('#ah').value.split(/[\s,]+/).filter(Boolean).map(x=>parseInt(x,10)).filter(x=>x>=0&&x<24),model:$('#am').value,doctrines:[...document.querySelectorAll('input[type=checkbox]:checked')].map(x=>x.value)})});meta=null;toast('Saved')}catch(e){toast(e.message)}};
 },
 async setup(){
   $('#view').innerHTML='<div class="card"><h2>Setup</h2><label>API address</label><input id="ua" value="'+esc(cfg('api'))+'" autocapitalize="off"><label>Dashboard key</label><input id="uk" type="password" value="'+esc(cfg('key'))+'" autocapitalize="off"><div class="row" style="margin-top:12px"><button class="go" id="us">Save</button></div></div>';

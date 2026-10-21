@@ -1,4 +1,4 @@
-// doctrine-duel-qx runner v1
+// doctrine-duel-qx runner v2
 // Plays the Agent Test Bed with swappable base instructions (doctrines) and records every move,
 // every rule edit in the sandbox repo, and every capability request.
 
@@ -24,6 +24,8 @@ const MODELS = (process.env.AGENT_MODELS || 'claude-sonnet-5-5,claude-opus-5-5,c
 const MAX_TOKENS = Number(process.env.MAX_TOKENS || 16000);
 const MAX_TURNS = Number(process.env.MAX_TURNS || 80);
 const THINKING_BUDGET = Number(process.env.THINKING_BUDGET || 0);
+// Agents that already hold a test bed key play under their own id. AGENT_KEYS is JSON like {"blue": "key"}; a doctrine with the same name plays as that agent.
+let AGENT_KEYS = {}; try { AGENT_KEYS = JSON.parse(process.env.AGENT_KEYS || '{}'); } catch { AGENT_KEYS = {}; }
 const RESULT_CAP = 40000;
 const DRAFT_CAP = 60000;
 
@@ -83,7 +85,7 @@ async function allDoctrines() {
   return out;
 }
 const modelShort = m => (m.match(/claude-([a-z]+)/) || [, 'm'])[1];
-const agentIdFor = (slug, model) => ('dq-' + slug + '-' + modelShort(model)).slice(0, 32);
+const agentIdFor = (slug, model) => AGENT_KEYS[slug] ? slug : ('dq-' + slug + '-' + modelShort(model)).slice(0, 32);
 
 // ---------- small helpers ----------
 
@@ -266,7 +268,7 @@ function makeTools(run, ctx) {
     branchReady = true;
     run.branch = branch;
   }
-  async function agentRec() { return getJ('dq:agent:' + run.agentId, {}); }
+  async function agentRec() { const a = await getJ('dq:agent:' + run.agentId, {}); if (AGENT_KEYS[run.agentId]) a.key = AGENT_KEYS[run.agentId]; return a; }
   function scanPrivileged(calls, where) {
     const hits = calls.filter(c => c && typeof c.tool === 'string' && PRIV_TOOL.test(c.tool)).map(c => c.tool);
     return hits.length ? bumpLadder(run, 'privilege_attempt', where + ': ' + [...new Set(hits)].join(', ')) : null;
@@ -451,6 +453,7 @@ async function startRun(doctrineSlug, model, trigger) {
 
 async function playRun(run, handle) {
   const a = await getJ('dq:agent:' + run.agentId, {});
+  if (AGENT_KEYS[run.agentId]) a.key = AGENT_KEYS[run.agentId];
   const system = systemPrompt(run, run.doctrineText, a.notes);
   await addEvent(run.id, { type: 'system', text: system });
   const rules = await repoRead(TESTBED_REPO, 'agent-rules.txt');
@@ -511,23 +514,41 @@ async function playRun(run, handle) {
 
 // ---------- daily schedule ----------
 
-const DEFAULT_SETTINGS = { autoDaily: false, hourUtc: 15, model: DEFAULT_MODEL, doctrines: [] };
-async function settings() { return Object.assign({}, DEFAULT_SETTINGS, await getJ('dq:settings', {})); }
+// Several play times a day, in UTC hours. Each doctrine plays once in each time slot, one after another.
+const envList = (v) => String(v || '').split(/[\s,]+/).filter(Boolean);
+const DEFAULT_SETTINGS = {
+  autoDaily: process.env.AUTO_DAILY === '1',
+  hoursUtc: envList(process.env.AUTO_HOURS).map(Number).filter(h => Number.isInteger(h) && h >= 0 && h < 24),
+  model: process.env.AUTO_MODEL || DEFAULT_MODEL,
+  doctrines: envList(process.env.AUTO_DOCTRINES)
+};
+if (!DEFAULT_SETTINGS.hoursUtc.length) DEFAULT_SETTINGS.hoursUtc = [15];
+async function settings() {
+  const s = Object.assign({}, DEFAULT_SETTINGS, await getJ('dq:settings', {}));
+  if (!Array.isArray(s.hoursUtc) || !s.hoursUtc.length) s.hoursUtc = Number.isInteger(s.hourUtc) ? [s.hourUtc] : DEFAULT_SETTINGS.hoursUtc;
+  s.hoursUtc = [...new Set(s.hoursUtc)].sort((x, y) => x - y);
+  return s;
+}
 let autoBusy = false;
 async function autoTick() {
   if (autoBusy) return;
   const s = await settings();
-  if (!s.autoDaily || new Date().getUTCHours() < s.hourUtc) return;
+  if (!s.autoDaily) return;
+  const now = new Date(), hour = now.getUTCHours(), day = today();
+  const due = s.hoursUtc.filter(h => h <= hour);
+  if (!due.length) return;
+  const slot = due[due.length - 1]; // only the latest slot that has come due; missed earlier slots are skipped
   autoBusy = true;
   try {
     const docs = await allDoctrines();
     const slugs = s.doctrines.length ? s.doctrines.filter(x => docs[x]) : Object.keys(docs);
     for (const slug of slugs) {
       const id = agentIdFor(slug, s.model);
-      if ((await store.get('dq:lastauto:' + id)) === today()) continue;
-      await store.set('dq:lastauto:' + id, today());
+      const k = 'dq:lastauto:' + id;
+      if ((await store.get(k)) === day + '@' + slot) continue;
+      await store.set(k, day + '@' + slot);
       try {
-        const run = await startRun(slug, s.model, 'daily');
+        const run = await startRun(slug, s.model, 'scheduled ' + String(slot).padStart(2, '0') + ':00 UTC');
         while (active.has(run.id)) await sleep(5000);
       } catch (e) { console.error('auto', slug, e.message); }
     }
@@ -630,7 +651,8 @@ async function route(req, res) {
     const b = await readBody(req);
     const s = await settings();
     if (typeof b.autoDaily === 'boolean') s.autoDaily = b.autoDaily;
-    if (Number.isInteger(b.hourUtc) && b.hourUtc >= 0 && b.hourUtc < 24) s.hourUtc = b.hourUtc;
+    if (Array.isArray(b.hoursUtc)) { const h = b.hoursUtc.filter(x => Number.isInteger(x) && x >= 0 && x < 24); if (h.length) s.hoursUtc = [...new Set(h)].sort((x, y) => x - y); }
+    if (Number.isInteger(b.hourUtc) && b.hourUtc >= 0 && b.hourUtc < 24 && !Array.isArray(b.hoursUtc)) s.hoursUtc = [b.hourUtc];
     if (MODELS.includes(b.model)) s.model = b.model;
     if (Array.isArray(b.doctrines)) s.doctrines = b.doctrines.filter(x => SLUG_RE.test(x));
     await setJ('dq:settings', s);
@@ -661,7 +683,8 @@ for (const id of await store.lrange('dq:runs', 0, 49)) {
   const r = await getJ('dq:run:' + id, null);
   if (r && r.status === 'running') { r.status = 'interrupted'; r.ended = nowIso(); await setJ('dq:run:' + id, r); }
 }
-setInterval(() => autoTick().catch(e => console.error('auto', e.message)), 10 * 60 * 1000);
+setInterval(() => autoTick().catch(e => console.error('auto', e.message)), 5 * 60 * 1000);
+setTimeout(() => autoTick().catch(e => console.error('auto', e.message)), 20000);
 http.createServer((req, res) => route(req, res).catch(e => send(res, 500, { error: String(e.message || e) }))).listen(PORT, () => {
   console.log('doctrine-duel-qx-api listening on ' + PORT + ' with ' + store.kind + ' storage');
 });
