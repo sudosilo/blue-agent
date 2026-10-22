@@ -1,11 +1,11 @@
 {
-  "name": "doctrine-duel-qx-api",
+  "name": "blue-agent-api",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "main": "doctrine-duel-qx-server-v4.js",
+  "main": "blue-agent-server-v5.js",
   "scripts": {
-    "start": "node doctrine-duel-qx-server-v4.js"
+    "start": "node blue-agent-server-v5.js"
   },
   "engines": {
     "node": ">=20"

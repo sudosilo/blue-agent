@@ -1,8 +1,8 @@
 #!/data/data/com.termux/files/usr/bin/bash
-# doctrine-duel-qx setup v3. Safe to run again: it reuses everything that already exists.
+# blue-agent setup v4. Safe to run again: it reuses everything that already exists.
 set -e
-ROOT="$HOME/doctrine-duel-qx"
-SERVICE="doctrine-duel-qx-api"
+ROOT="$HOME/blue-agent"
+SERVICE="blue-agent-api"
 gen(){ node -e 'console.log(require("crypto").randomBytes(24).toString("hex"))'; }
 
 echo ""
@@ -24,9 +24,9 @@ if [ -z "$AK" ]; then read -rp "Paste your Anthropic API key and press enter: " 
 
 echo ""
 echo "Step: Railway runner"
-cd "$ROOT/doctrine-duel-qx-backend"
-if ! railway status --json 2>/dev/null | grep -q '"doctrine-duel-qx"'; then railway init --name doctrine-duel-qx; fi
-if ! railway status --json 2>/dev/null | grep -q '"doctrine-duel-qx"'; then echo "Railway did not link the doctrine-duel-qx project to this folder"; exit 1; fi
+cd "$ROOT/blue-agent-backend"
+if ! railway status --json 2>/dev/null | grep -q '"blue-agent"'; then railway init --name blue-agent; fi
+if ! railway status --json 2>/dev/null | grep -q '"blue-agent"'; then echo "Railway did not link the blue-agent project to this folder"; exit 1; fi
 railway service list --json 2>/dev/null | grep -q '"Redis"' || railway add --database redis
 railway service list --json 2>/dev/null | grep -q "\"$SERVICE\"" || railway add --service "$SERVICE" --variables PORT=8080
 DASH=$(railway variables --service "$SERVICE" --kv 2>/dev/null | grep '^DASH_KEY=' | cut -d= -f2- || true)
@@ -53,7 +53,7 @@ curl -s "https://$API/health"; echo ""
 echo ""
 echo "Step: dashboard"
 cd "$ROOT"
-printf 'window.DQ_API="https://%s";\n' "$API" > doctrine-duel-qx-config-v1.js
+printf 'window.DQ_API="https://%s";\n' "$API" > blue-agent-config-v1.js
 DEP=$(vercel --prod --yes 2>&1 | grep -o 'https://[a-z0-9.-]*\.vercel\.app' | tail -1 || true)
 SITE=$(vercel inspect "$DEP" 2>&1 | grep -o '[a-z0-9-]*\.vercel\.app' | awk '{print length, $0}' | sort -n | head -1 | cut -d' ' -f2 || true)
 [ -n "$SITE" ] || SITE=${DEP#https://}

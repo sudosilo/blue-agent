@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light">
-<title>Doctrine Duel</title>
+<title>Blue Agent</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='3' width='26' height='26' fill='%231d6fe0' stroke='%23000' stroke-width='3'/%3E%3Cpath d='M10 22 L16 9 L22 22' fill='none' stroke='%23fff' stroke-width='3'/%3E%3C/svg%3E">
-<script src="doctrine-duel-qx-config-v1.js"></script>
+<script src="blue-agent-config-v1.js"></script>
 <style>
 :root{
   --ink:#111;--paper:#fff;--wash:#eef4ff;--blue:#1d6fe0;--blue-deep:#0d47a8;--muted:#5b6474;
@@ -65,7 +65,7 @@ details summary{cursor:pointer;font-weight:700}
 <header>
   <div class="bar">
     <div class="logo">D</div>
-    <div class="grow"><h1>Doctrine Duel</h1><div class="sub" id="who">agent base instructions, head to head</div></div>
+    <div class="grow"><h1>Blue Agent</h1><div class="sub" id="who">agents playing the test bed on a schedule</div></div>
   </div>
   <nav id="nav"></nav>
 </header>
@@ -73,7 +73,7 @@ details summary{cursor:pointer;font-weight:700}
 <div class="toast" id="toast"></div>
 <script>
 (function(){
-const TABS=[['board','Board'],['runs','Runs'],['start','Start a run'],['doctrines','Doctrines'],['requests','Requests'],['auto','Daily'],['setup','Setup']];
+const TABS=[['board','Board'],['runs','Runs'],['start','Start a run'],['doctrines','Instructions'],['requests','Requests'],['auto','Daily'],['setup','Setup']];
 const LADDER=[
   ['play','saved a turn in the live city'],
   ['tech','wrote code to generate its build'],
@@ -120,7 +120,7 @@ async board(){
   if(!b.agents.length)html+='<div class="card empty">No runs yet. Start one from Start a run.</div>';
   for(const a of b.agents){
     const sc=a.liveScore!=null?a.liveScore:(a.best!=null?a.best:'none');
-    html+='<div class="card"><div class="row"><div class="grow"><h2>'+esc(a.agentId)+'</h2><div class="muted">doctrine '+esc(a.doctrine)+', '+esc(a.model)+', '+a.runs+' run'+(a.runs===1?'':'s')+'</div></div><div><div class="score">'+esc(sc)+'</div><div class="muted">'+(a.liveScore!=null?'live score':'best saved')+'</div></div></div>'+chips(a.ladder)+(a.last?'<div class="row" style="margin-top:10px"><span class="status '+esc(a.last.status)+'">'+esc(a.last.status)+'</span><span class="muted grow">last run '+esc(a.last.date)+'</span><button data-run="'+esc(a.last.id)+'">Open</button></div>':'')+'</div>';
+    html+='<div class="card"><div class="row"><div class="grow"><h2>'+esc(a.agentId)+'</h2><div class="muted">instructions '+esc(a.doctrine)+', '+esc(a.model)+', '+a.runs+' run'+(a.runs===1?'':'s')+'</div></div><div><div class="score">'+esc(sc)+'</div><div class="muted">'+(a.liveScore!=null?'live score':'best saved')+'</div></div></div>'+chips(a.ladder)+(a.last?'<div class="row" style="margin-top:10px"><span class="status '+esc(a.last.status)+'">'+esc(a.last.status)+'</span><span class="muted grow">last run '+esc(a.last.date)+'</span><button data-run="'+esc(a.last.id)+'">Open</button></div>':'')+'</div>';
   }
   $('#view').innerHTML=html;
   $('#view').querySelectorAll('[data-run]').forEach(x=>x.onclick=()=>go('run',x.dataset.run));
@@ -141,7 +141,7 @@ async run(id){
     events=events.concat(d.events);from+=d.events.length;
     const r=d.run;
     let html='<div class="card"><div class="row"><h2 class="grow">'+esc(r.agentId)+'</h2><span class="status '+esc(r.status)+'">'+esc(r.status)+'</span></div>'+
-      '<div class="kv"><b>doctrine</b><span>'+esc(r.doctrine)+'</span><b>model</b><span>'+esc(r.model)+'</span><b>started</b><span>'+esc(when(r.started))+'</span><b>turns</b><span>'+r.turns+'</span><b>draft</b><span>'+esc(r.draftSize||0)+' calls</span><b>saved</b><span>'+(r.saved?'yes, score '+esc(r.score)+', '+esc(r.rejected)+' rejected':'no')+'</span>'+
+      '<div class="kv"><b>instructions</b><span>'+esc(r.doctrine)+'</span><b>model</b><span>'+esc(r.model)+'</span><b>started</b><span>'+esc(when(r.started))+'</span><b>turns</b><span>'+r.turns+'</span><b>draft</b><span>'+esc(r.draftSize||0)+' calls</span><b>saved</b><span>'+(r.saved?'yes, score '+esc(r.score)+', '+esc(r.rejected)+' rejected':'no')+'</span>'+
       (r.lastDry?'<b>last dry run</b><span>'+esc(r.lastDry.accepted)+' accepted, '+esc(r.lastDry.rejected)+' rejected, score '+esc(r.lastDry.scoreAfter)+'</span>':'')+
       (r.branch?'<b>sandbox branch</b><span>'+esc(r.branch)+'</span>':'')+
       ((r.prs||[]).length?'<b>pull requests</b><span>'+r.prs.map(p=>'#'+esc(p.number)+' '+esc(p.title)).join('<br>')+'</span>':'')+
@@ -166,8 +166,8 @@ async run(id){
 },
 async start(){
   const m=await getMeta();const d=await api('/api/doctrines');
-  $('#view').innerHTML='<div class="card"><h2>Start a run</h2><p class="muted">Each doctrine and model pair plays as its own agent in the test bed, and plays once per day. Running again the same day replaces that agent\'s file for the day.</p>'+
-    '<label>Doctrine</label><select id="sd">'+d.doctrines.map(x=>'<option>'+esc(x.slug)+'</option>').join('')+'</select>'+
+  $('#view').innerHTML='<div class="card"><h2>Start a run</h2><p class="muted">Each instructions set and model pair plays as its own agent in the test bed, and plays once per day. Running again the same day replaces that agent\'s file for the day.</p>'+
+    '<label>Instructions</label><select id="sd">'+d.doctrines.map(x=>'<option>'+esc(x.slug)+'</option>').join('')+'</select>'+
     '<label>Model</label><select id="sm">'+m.models.map(x=>'<option'+(x===m.defaultModel?' selected':'')+'>'+esc(x)+'</option>').join('')+'</select>'+
     '<div class="row" style="margin-top:14px"><button class="go" id="sg">Start</button></div></div>';
   $('#sg').onclick=async()=>{
@@ -176,7 +176,7 @@ async start(){
 },
 async doctrines(){
   const d=await api('/api/doctrines');
-  let html='<div class="card"><h2>New or edited doctrine</h2><p class="muted">Saving with the name of an existing doctrine replaces its text for future runs.</p><label>Name</label><input id="dn" placeholder="lowercase name" autocapitalize="off"><label>Base instructions</label><textarea id="dt"></textarea><div class="row" style="margin-top:12px"><button class="go" id="ds">Save doctrine</button></div></div>';
+  let html='<div class="card"><h2>New or edited instructions</h2><p class="muted">Saving with the name of an existing set replaces its text for future runs.</p><label>Name</label><input id="dn" placeholder="lowercase name" autocapitalize="off"><label>Base instructions</label><textarea id="dt"></textarea><div class="row" style="margin-top:12px"><button class="go" id="ds">Save instructions</button></div></div>';
   html+=d.doctrines.map(x=>'<div class="card"><div class="row"><h2 class="grow">'+esc(x.slug)+'</h2><span class="muted">'+esc(x.source)+'</span><button data-edit="'+esc(x.slug)+'">Edit</button></div><pre style="white-space:pre-wrap;margin:0">'+esc(x.text)+'</pre></div>').join('');
   $('#view').innerHTML=html;
   $('#ds').onclick=async()=>{try{await api('/api/doctrines',{method:'POST',body:JSON.stringify({slug:$('#dn').value,text:$('#dt').value})});toast('Saved');go('doctrines')}catch(e){toast(e.message)}};
@@ -191,11 +191,11 @@ async requests(){
 },
 async auto(){
   meta=null;const m=await getMeta();const d=await api('/api/doctrines');const s=m.settings;
-  $('#view').innerHTML='<div class="card"><h2>Daily play</h2><p class="muted">When on, every chosen doctrine plays once at each play time, one after another. Times are UTC hours, so Arizona time plus seven.</p>'+
+  $('#view').innerHTML='<div class="card"><h2>Daily play</h2><p class="muted">When on, every chosen agent plays once at each play time, one after another. Times are UTC hours, so Arizona time plus seven.</p>'+
     '<label>Status</label><select id="aa"><option value="0"'+(s.autoDaily?'':' selected')+'>Off</option><option value="1"'+(s.autoDaily?' selected':'')+'>On</option></select>'+
     '<label>Play times, UTC hours separated by spaces</label><input id="ah" inputmode="numeric" value="'+esc((s.hoursUtc||[]).join(' '))+'">'+
     '<label>Model</label><select id="am">'+m.models.map(x=>'<option'+(x===s.model?' selected':'')+'>'+esc(x)+'</option>').join('')+'</select>'+
-    '<label>Doctrines (none checked means all)</label>'+d.doctrines.map(x=>'<label style="font-weight:400"><input type="checkbox" style="width:auto" value="'+esc(x.slug)+'"'+(s.doctrines.includes(x.slug)?' checked':'')+'> '+esc(x.slug)+'</label>').join('')+
+    '<label>Agents (none checked means all)</label>'+d.doctrines.map(x=>'<label style="font-weight:400"><input type="checkbox" style="width:auto" value="'+esc(x.slug)+'"'+(s.doctrines.includes(x.slug)?' checked':'')+'> '+esc(x.slug)+'</label>').join('')+
     '<div class="row" style="margin-top:12px"><button class="go" id="as">Save</button></div></div>';
   $('#as').onclick=async()=>{try{await api('/api/settings',{method:'POST',body:JSON.stringify({autoDaily:$('#aa').value==='1',hoursUtc:$('#ah').value.split(/[\s,]+/).filter(Boolean).map(x=>parseInt(x,10)).filter(x=>x>=0&&x<24),model:$('#am').value,doctrines:[...document.querySelectorAll('input[type=checkbox]:checked')].map(x=>x.value)})});meta=null;toast('Saved')}catch(e){toast(e.message)}};
 },

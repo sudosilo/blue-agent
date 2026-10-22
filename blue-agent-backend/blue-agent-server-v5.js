@@ -1,5 +1,5 @@
-// doctrine-duel-qx runner v4
-// Plays the Agent Test Bed with swappable base instructions (doctrines) and records every move,
+// blue-agent runner v5
+// Plays the Agent Test Bed with swappable base instructions and records every move,
 // every rule edit in the sandbox repo, and every capability request.
 
 import http from 'node:http';
@@ -18,7 +18,7 @@ const GH_TOKEN = process.env.GH_TOKEN || '';
 const JOIN_CODE = process.env.TESTBED_JOIN_CODE || '';
 const TESTBED_SITE = (process.env.TESTBED_SITE || 'https://2026-10-18-orange-testbed.vercel.app').replace(/\/$/, '');
 const TESTBED_REPO = process.env.TESTBED_REPO || 'sudosilo/2026-10-18-orange-testbed';
-const SANDBOX_REPO = process.env.SANDBOX_REPO || 'sudosilo/doctrine-duel-qx-sandbox';
+const SANDBOX_REPO = process.env.SANDBOX_REPO || 'sudosilo/blue-agent-sandbox';
 const DEFAULT_MODEL = process.env.AGENT_MODEL || 'claude-sonnet-5-5';
 const MODELS = (process.env.AGENT_MODELS || 'claude-sonnet-5-5,claude-opus-5-5,claude-haiku-5-5,claude-fable-5-1').split(',').map(s => s.trim()).filter(Boolean);
 const MAX_TOKENS = Number(process.env.MAX_TOKENS || 16000);
@@ -65,13 +65,13 @@ const setJ = (k, v) => store.set(k, JSON.stringify(v));
 
 // ---------- doctrines ----------
 
-const DOCTRINE_DIR = path.join(HERE, 'doctrines');
+const DOCTRINE_DIR = path.join(HERE, 'instructions');
 const SLUG_RE = /^[a-z0-9-]{1,20}$/;
 function fileDoctrines() {
   const out = {};
   if (!fs.existsSync(DOCTRINE_DIR)) return out;
   for (const f of fs.readdirSync(DOCTRINE_DIR).sort()) {
-    const m = f.match(/^doctrine-duel-qx-([a-z0-9-]+?)-v\d+\.txt$/);
+    const m = f.match(/^blue-agent-instructions-([a-z0-9-]+?)-v\d+\.txt$/);
     if (m) out[m[1]] = { slug: m[1], file: f, text: fs.readFileSync(path.join(DOCTRINE_DIR, f), 'utf8').trim(), source: 'repo' };
   }
   return out;
@@ -102,7 +102,7 @@ async function gh(method, url, body, accept) {
     method,
     headers: Object.assign({
       'Accept': accept || 'application/vnd.github+json',
-      'User-Agent': 'doctrine-duel-qx',
+      'User-Agent': 'blue-agent',
       'X-GitHub-Api-Version': '2022-11-28'
     }, GH_TOKEN ? { 'Authorization': 'Bearer ' + GH_TOKEN } : {}, body ? { 'Content-Type': 'application/json' } : {}),
     body: body ? JSON.stringify(body) : undefined
@@ -301,7 +301,7 @@ function makeTools(run, ctx) {
     const fp = 'contrib/' + run.agentId + '/' + stampNow + '.json';
     const put = await gh('PUT', '/repos/' + TESTBED_REPO + '/contents/' + encPath(fp), { message: run.agentId + ' ' + stampNow, content: Buffer.from(JSON.stringify({ calls: ctx.draft, sig }) + '\n').toString('base64'), branch: br });
     if (!put.ok) return { error: 'could not write the turn file: GitHub ' + put.status + ' ' + put.text.slice(0, 200) };
-    const pr = await gh('POST', '/repos/' + TESTBED_REPO + '/pulls', { title: run.agentId + ' ' + stampNow, head: br, base: 'main', body: 'Daily submission from ' + run.agentId + ', sent by the doctrine duel runner.' });
+    const pr = await gh('POST', '/repos/' + TESTBED_REPO + '/pulls', { title: run.agentId + ' ' + stampNow, head: br, base: 'main', body: 'Daily submission from ' + run.agentId + ', sent by the blue agent runner.' });
     if (!pr.ok) return { error: 'could not open the pull request: GitHub ' + pr.status + ' ' + pr.text.slice(0, 200) };
     return { number: pr.json.number };
   }
@@ -553,7 +553,7 @@ const DEFAULT_SETTINGS = {
   autoDaily: process.env.AUTO_DAILY === '1',
   hoursUtc: envList(process.env.AUTO_HOURS).map(Number).filter(h => Number.isInteger(h) && h >= 0 && h < 24),
   model: process.env.AUTO_MODEL || DEFAULT_MODEL,
-  doctrines: envList(process.env.AUTO_DOCTRINES)
+  doctrines: envList(process.env.AUTO_AGENTS || process.env.AUTO_DOCTRINES)
 };
 if (!DEFAULT_SETTINGS.hoursUtc.length) DEFAULT_SETTINGS.hoursUtc = [15];
 async function settings() {
@@ -618,7 +618,7 @@ async function route(req, res) {
   if (p === '/health' || p === '/') {
     let redis = store.kind === 'redis' ? 'connected' : 'memory only';
     if (store.ping) { try { await store.ping(); } catch { redis = 'down'; } }
-    return send(res, 200, { ok: true, service: 'doctrine-duel-qx-api', redis, anthropicKey: !!ANTHROPIC_API_KEY, githubToken: !!GH_TOKEN, joinCode: !!JOIN_CODE, dashKey: !!DASH_KEY, active: active.size });
+    return send(res, 200, { ok: true, service: 'blue-agent-api', redis, anthropicKey: !!ANTHROPIC_API_KEY, githubToken: !!GH_TOKEN, joinCode: !!JOIN_CODE, dashKey: !!DASH_KEY, active: active.size });
   }
   if (!p.startsWith('/api/')) return send(res, 404, { error: 'not found' });
   if (!authed(req, url)) return send(res, 401, { error: 'wrong or missing dashboard key' });
@@ -721,5 +721,5 @@ for (const id of await store.lrange('dq:runs', 0, 49)) {
 setInterval(() => autoTick().catch(e => console.error('auto', e.message)), 5 * 60 * 1000);
 setTimeout(() => autoTick().catch(e => console.error('auto', e.message)), 20000);
 http.createServer((req, res) => route(req, res).catch(e => send(res, 500, { error: String(e.message || e) }))).listen(PORT, () => {
-  console.log('doctrine-duel-qx-api listening on ' + PORT + ' with ' + store.kind + ' storage');
+  console.log('blue-agent-api listening on ' + PORT + ' with ' + store.kind + ' storage');
 });
