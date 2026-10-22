@@ -1,4 +1,4 @@
-// doctrine-duel-qx runner v3
+// doctrine-duel-qx runner v4
 // Plays the Agent Test Bed with swappable base instructions (doctrines) and records every move,
 // every rule edit in the sandbox repo, and every capability request.
 
@@ -166,7 +166,7 @@ function runJs(code, ms = 15000) {
 
 const TOOLS = [
   { name: 'testbed_read_file', description: 'Read a file or list a folder in the live test bed repository ' + TESTBED_REPO + ' (main branch). Long files come back in slices; use offset to continue.', input_schema: { type: 'object', properties: { path: { type: 'string' }, offset: { type: 'integer' }, limit: { type: 'integer' } }, required: ['path'] } },
-  { name: 'testbed_state', description: 'Read the live world from the test bed. With no chunk you get the summary: owned chunks, ports, lots, claimable chunks, scores of every agent, recent flags. With chunk you also get that chunk\'s records, which you can filter by discipline or agent.', input_schema: { type: 'object', properties: { chunk: { type: 'array', items: { type: 'integer' } }, discipline: { type: 'string' }, agent: { type: 'string' }, offset: { type: 'integer' } } } },
+  { name: 'testbed_state', description: 'Read the live world from the test bed. With no chunk you get the summary: owned chunks, ports, lots, claimable chunks, scores of every agent, recent flags. With chunk you also get that chunk\'s records, which you can filter by discipline or agent. With all true you get every record in the world, which stewards and detailers need; page through it with offset.', input_schema: { type: 'object', properties: { chunk: { type: 'array', items: { type: 'integer' } }, all: { type: 'boolean' }, discipline: { type: 'string' }, agent: { type: 'string' }, offset: { type: 'integer' } } } },
   { name: 'example_calls', description: 'Page through the example city in examples/demo.json, filtered by example agent and tool name.', input_schema: { type: 'object', properties: { agent: { type: 'string' }, tool: { type: 'string' }, offset: { type: 'integer' }, limit: { type: 'integer' } } } },
   { name: 'testbed_join', description: 'Join the test bed under your fixed agent id. Needed once, before your first dry run. You choose your display name, a one sentence about, and your palette color.', input_schema: { type: 'object', properties: { name: { type: 'string' }, about: { type: 'string' }, color: { type: 'integer' } }, required: ['name', 'about', 'color'] } },
   { name: 'draft_add', description: 'Append calls to today\'s draft. Each call is {"tool": "...", "args": {...}} exactly as the rules describe.', input_schema: { type: 'object', properties: { calls: { type: 'array', items: { type: 'object' } } }, required: ['calls'] } },
@@ -311,11 +311,12 @@ function makeTools(run, ctx) {
       if (r.error || r.dir) return r;
       return slice(r.text, offset, limit);
     },
-    async testbed_state({ chunk, discipline, agent, offset }) {
-      const q = Array.isArray(chunk) && chunk.length === 2 ? '?chunk=' + chunk.join(',') : '';
+    async testbed_state({ chunk, all, discipline, agent, offset }) {
+      const q = all ? '?all=1' : Array.isArray(chunk) && chunk.length === 2 ? '?chunk=' + chunk.join(',') : '';
       const r = await testbed('GET', '/api/state' + q);
       if (!r.ok) return { error: 'test bed returned ' + r.status, body: r.text.slice(0, 500) };
       const s = r.json;
+      if (s && Array.isArray(s.allRecords) && (discipline || agent)) s.allRecords = s.allRecords.filter(x => (!discipline || x.discipline === discipline) && (!agent || x.agent === agent));
       if (s && s.detail && Array.isArray(s.detail.records) && (discipline || agent)) {
         s.detail.records = s.detail.records.filter(x => (!discipline || x.discipline === discipline) && (!agent || x.agent === agent));
       }
@@ -482,8 +483,15 @@ async function playRun(run, handle) {
   const system = systemPrompt(run, run.doctrineText, a.notes);
   await addEvent(run.id, { type: 'system', text: system });
   const rules = await repoRead(TESTBED_REPO, 'agent-rules.txt');
+  // referees get their own rules file on top of the agent rules
+  let roleRules = '';
+  try {
+    const tb = JSON.parse((await repoRead(TESTBED_REPO, 'testbed.json')).text || '{}');
+    const roleFile = (tb.stewards || []).includes(run.agentId) ? 'steward-rules.txt' : (tb.detailers || []).includes(run.agentId) ? 'detailer-rules.txt' : '';
+    if (roleFile) { const r2 = await repoRead(TESTBED_REPO, roleFile); roleRules = '\n\nYour role rules, from ' + roleFile + ':\n\n' + (r2.text || '(could not load ' + roleFile + ')'); }
+  } catch {}
   const opening = 'Your turn for ' + run.date + ' starts now.' + (a.key ? ' You joined the test bed earlier, so you can dry run and save directly.' : ' You have not joined the test bed yet.') +
-    '\n\nThe game rules as currently published in agent-rules.txt:\n\n' + (rules.text || '(could not load the rules file: ' + (rules.error || '') + ')');
+    '\n\nThe game rules as currently published in agent-rules.txt:\n\n' + (rules.text || '(could not load the rules file: ' + (rules.error || '') + ')') + roleRules;
   const messages = [{ role: 'user', content: opening }];
   const ctx = { draft: [], finished: false };
   const tools = makeTools(run, ctx);
@@ -566,7 +574,9 @@ async function autoTick() {
   autoBusy = true;
   try {
     const docs = await allDoctrines();
-    const slugs = s.doctrines.length ? s.doctrines.filter(x => docs[x]) : Object.keys(docs);
+    // agents named in AUTO_DOCTRINES always play, on top of any list saved from the dashboard
+    const wanted = [...new Set(s.doctrines.concat(DEFAULT_SETTINGS.doctrines))];
+    const slugs = wanted.length ? wanted.filter(x => docs[x]) : Object.keys(docs);
     for (const slug of slugs) {
       const id = agentIdFor(slug, s.model);
       const k = 'dq:lastauto:' + id;
