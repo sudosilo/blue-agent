@@ -5,7 +5,7 @@
   "type": "module",
   "main": "blue-agent-server-v5.js",
   "scripts": {
-    "start": "node blue-agent-server-v5.js"
+    "start": "node show-runs.mjs; node blue-agent-server-v5.js"
   },
   "engines": {
     "node": ">=20"
