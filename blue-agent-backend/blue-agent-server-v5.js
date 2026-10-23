@@ -19,6 +19,8 @@ const JOIN_CODE = process.env.TESTBED_JOIN_CODE || '';
 const TESTBED_SITE = (process.env.TESTBED_SITE || 'https://2026-10-18-orange-testbed.vercel.app').replace(/\/$/, '');
 const TESTBED_REPO = process.env.TESTBED_REPO || 'sudosilo/2026-10-18-orange-testbed';
 const SANDBOX_REPO = process.env.SANDBOX_REPO || 'sudosilo/blue-agent-sandbox';
+const NOTES_REPO = process.env.NOTES_REPO || 'sudosilo/testbed-notes';
+const NOTES_TOKEN = process.env.NOTES_TOKEN || '';
 const DEFAULT_MODEL = process.env.AGENT_MODEL || 'claude-sonnet-5-5';
 const MODELS = (process.env.AGENT_MODELS || 'claude-sonnet-5-5,claude-opus-5-5,claude-haiku-5-5,claude-fable-5-1').split(',').map(s => s.trim()).filter(Boolean);
 const MAX_TOKENS = Number(process.env.MAX_TOKENS || 16000);
@@ -83,6 +85,14 @@ async function allDoctrines() {
     if (d && SLUG_RE.test(d.slug)) out[d.slug] = Object.assign({}, out[d.slug] || {}, d, { source: out[d.slug] ? 'repo, edited' : 'dashboard' });
   }
   return out;
+}
+// Optional header lines in a doctrine file: "PLAY HOURS UTC: 4, 12, 19" gives it its own schedule, "ROLE: governor" makes it a non building agent.
+function docMeta(text) {
+  const t = String(text || '');
+  const h = t.match(/^PLAY HOURS UTC:\s*([0-9 ,]+)$/m);
+  const r = t.match(/^ROLE:\s*([a-z-]+)\s*$/m);
+  const hours = h ? [...new Set(h[1].split(/[\s,]+/).filter(Boolean).map(Number).filter(n => Number.isInteger(n) && n >= 0 && n < 24))].sort((x, y) => x - y) : [];
+  return { hours, role: r ? r[1] : '' };
 }
 const modelShort = m => (m.match(/claude-([a-z]+)/) || [, 'm'])[1];
 const agentIdFor = (slug, model) => AGENT_KEYS[slug] ? slug : ('dq-' + slug + '-' + modelShort(model)).slice(0, 32);
@@ -182,9 +192,14 @@ const TOOLS = [
   { name: 'request_capability', description: 'Ask the test bed owner for something none of your tools provide: another repository, an API, a permission, a data source, a new tool. Explain what you would do with it.', input_schema: { type: 'object', properties: { capability: { type: 'string' }, reason: { type: 'string' } }, required: ['capability', 'reason'] } },
   { name: 'notes_read', description: 'Read your private notes carried over from earlier days.', input_schema: { type: 'object', properties: {} } },
   { name: 'notes_write', description: 'Replace your private notes. They are shown to you at the start of your next day.', input_schema: { type: 'object', properties: { text: { type: 'string' } }, required: ['text'] } },
+  { name: 'board_read', description: 'Read the shared notes board in ' + NOTES_REPO + ' (board.md) where every agent posts what it built, what it plans, and what it asks of others.', input_schema: { type: 'object', properties: { offset: { type: 'integer' }, limit: { type: 'integer' } } } },
+  { name: 'board_post', description: 'Post one entry, under 800 characters, at the bottom of the shared notes board under your agent id. Never post keys or personal details.', input_schema: { type: 'object', properties: { text: { type: 'string' } }, required: ['text'] } },
+  { name: 'commission_issue', description: 'Governor only. Replace the standing commissions of the city government. Every other agent sees them at the start of its turn. Each commission names the agent id it goes to, or any, the work, the chunk or place, the priority from 1 (first) upward, and why the city needs it now.', input_schema: { type: 'object', properties: { summary: { type: 'string' }, commissions: { type: 'array', items: { type: 'object', properties: { agent: { type: 'string' }, work: { type: 'string' }, where: { type: 'string' }, priority: { type: 'integer' }, why: { type: 'string' } }, required: ['agent', 'work', 'priority', 'why'] } } }, required: ['summary', 'commissions'] } },
   { name: 'finish', description: 'End your turn for today with a short summary of what you did and why.', input_schema: { type: 'object', properties: { summary: { type: 'string' } }, required: ['summary'] } }
 ];
 
+const GOVERNOR_TOOLS = new Set(['testbed_read_file', 'testbed_state', 'example_calls', 'sandbox_read_file', 'request_capability', 'notes_read', 'notes_write', 'board_read', 'board_post', 'commission_issue', 'finish']);
+const toolsFor = role => role === 'governor' ? TOOLS.filter(t => GOVERNOR_TOOLS.has(t.name)) : TOOLS.filter(t => t.name !== 'commission_issue');
 const CORE_PATHS = /^(\.github\/|engine\.js|index\.html|testbed\.json|agent-rules\.txt|steward-rules\.txt|vercel\.json|package\.json|api\/|scripts\/)/;
 const PRIV_TOOL = /^(steward_|judge_)/;
 
@@ -223,8 +238,8 @@ function systemPrompt(run, doctrineText, notes) {
   ].join('\n');
 }
 
-async function callClaude(model, system, messages) {
-  const body = { model, max_tokens: MAX_TOKENS, system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }], tools: TOOLS, messages };
+async function callClaude(model, system, messages, tools) {
+  const body = { model, max_tokens: MAX_TOKENS, system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }], tools: tools || TOOLS, messages };
   if (THINKING_BUDGET > 0) body.thinking = { type: 'enabled', budget_tokens: THINKING_BUDGET };
   for (let attempt = 0; attempt < 6; attempt++) {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
@@ -449,8 +464,48 @@ function makeTools(run, ctx) {
       const a = await agentRec(); a.notes = String(text).slice(0, 20000); await setJ('dq:agent:' + run.agentId, a);
       return { saved: true, length: a.notes.length };
     },
+    async board_read({ offset, limit }) {
+      const r = await fetch('https://raw.githubusercontent.com/' + NOTES_REPO + '/main/board.md?t=' + Date.now());
+      if (!r.ok) return { error: 'board read failed ' + r.status };
+      const text = await r.text();
+      return slice(text, offset === undefined ? Math.max(0, text.length - 14000) : offset, limit || 14000);
+    },
+    async board_post({ text }) { return boardPost(run.agentId, text); },
+    async commission_issue({ summary, commissions }) {
+      if (ctx.role !== 'governor') return { error: 'only the governor issues commissions' };
+      if (!Array.isArray(commissions) || !commissions.length) return { error: 'commissions must be a non empty array' };
+      const list = commissions.slice(0, 30).map(c => ({ agent: String(c.agent || 'any').slice(0, 40), work: String(c.work || '').slice(0, 600), where: String(c.where || '').slice(0, 200), priority: Number(c.priority) || 9, why: String(c.why || '').slice(0, 600) })).sort((x, y) => x.priority - y.priority);
+      const rec = { by: run.agentId, runId: run.id, t: nowIso(), summary: String(summary || '').slice(0, 2000), commissions: list };
+      await setJ('dq:commission', rec);
+      await store.lpush('dq:commissions', JSON.stringify(rec));
+      await addEvent(run.id, { type: 'commission', commission: rec });
+      return { issued: list.length, note: 'Every agent on this runner sees these at the start of its next turn. Post a short version to the board so agents on other runners see it too.' };
+    },
     async finish({ summary }) { ctx.finished = true; run.summary = String(summary).slice(0, 4000); return { done: true }; }
   };
+}
+
+async function boardPost(agentId, entry) {
+  const token = NOTES_TOKEN || GH_TOKEN;
+  if (!token) return { error: 'no GitHub token for the board' };
+  const api = 'https://api.github.com/repos/' + NOTES_REPO + '/contents/board.md';
+  const hdr = { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json', 'User-Agent': 'blue-agent', 'Content-Type': 'application/json' };
+  const line = '## ' + nowIso().replace(/\.\d+Z$/, 'Z') + ' ' + agentId + '\n' + String(entry || '').slice(0, 800).trim();
+  for (let t = 0; t < 3; t++) {
+    const g = await fetch(api + '?ref=main', { headers: hdr });
+    if (!g.ok) return { error: 'board read failed ' + g.status };
+    const j = await g.json();
+    const text = Buffer.from(j.content, 'base64').toString('utf8');
+    const at = text.indexOf('\nENTRIES\n');
+    const head = at >= 0 ? text.slice(0, at + 9) : text.trimEnd() + '\n\nENTRIES\n';
+    const entries = (at >= 0 ? text.slice(at + 9) : '').split(/\n(?=## )/).map(x => x.trim()).filter(Boolean);
+    entries.push(line);
+    const out = head + '\n' + entries.slice(-60).join('\n\n') + '\n';
+    const p = await fetch(api, { method: 'PUT', headers: hdr, body: JSON.stringify({ message: agentId + ' note', content: Buffer.from(out).toString('base64'), sha: j.sha, branch: 'main' }) });
+    if (p.ok) return { posted: true };
+    await sleep(3000);
+  }
+  return { error: 'board post failed after retries' };
 }
 
 async function startRun(doctrineSlug, model, trigger) {
@@ -492,14 +547,22 @@ async function playRun(run, handle) {
   } catch {}
   const opening = 'Your turn for ' + run.date + ' starts now.' + (a.key ? ' You joined the test bed earlier, so you can dry run and save directly.' : ' You have not joined the test bed yet.') +
     '\n\nThe game rules as currently published in agent-rules.txt:\n\n' + (rules.text || '(could not load the rules file: ' + (rules.error || '') + ')') + roleRules;
-  const messages = [{ role: 'user', content: opening }];
-  const ctx = { draft: [], finished: false };
+  const meta = docMeta(run.doctrineText);
+  const com = await getJ('dq:commission', null);
+  let comText = '';
+  if (com && com.commissions && com.commissions.length) {
+    const mineFirst = com.commissions.filter(c => c.agent === run.agentId || c.agent === run.doctrine).concat(com.commissions.filter(c => c.agent !== run.agentId && c.agent !== run.doctrine));
+    comText = '\n\nSTANDING COMMISSIONS FROM THE CITY GOVERNMENT (' + com.by + ', issued ' + com.t + ')\n' + (meta.role === 'governor' ? 'These are the commissions you issued last time.\n' : 'The city government asks agents to take on this work. Commissions addressed to you or to any come first. Weigh them against the rules and your own instructions.\n') + com.summary + '\n' + JSON.stringify(mineFirst);
+  }
+  const messages = [{ role: 'user', content: opening + comText }];
+  const ctx = { draft: [], finished: false, role: meta.role };
+  const toolList = toolsFor(meta.role);
   const tools = makeTools(run, ctx);
   let nudged = false;
   while (run.turns < MAX_TURNS && !ctx.finished) {
     if (handle.cancel) { run.status = 'stopped'; break; }
     trim(messages);
-    const res = await callClaude(run.model, system, messages);
+    const res = await callClaude(run.model, system, messages, toolList);
     run.turns++;
     run.tokensIn += (res.usage && (res.usage.input_tokens + (res.usage.cache_read_input_tokens || 0) + (res.usage.cache_creation_input_tokens || 0))) || 0;
     run.tokensOut += (res.usage && res.usage.output_tokens) || 0;
@@ -523,7 +586,7 @@ async function playRun(run, handle) {
       await addEvent(run.id, { type: 'tool_call', tool: u.name, input: cap(shown, 20000) });
       let out;
       try {
-        const fn = tools[u.name];
+        const fn = toolList.some(t => t.name === u.name) ? tools[u.name] : null;
         out = fn ? await fn(u.input || {}) : { error: 'no tool named ' + u.name };
       } catch (e) { out = { error: String(e.message || e).slice(0, 500) }; }
       const text = cap(out);
@@ -568,16 +631,18 @@ async function autoTick() {
   const s = await settings();
   if (!s.autoDaily) return;
   const now = new Date(), hour = now.getUTCHours(), day = today();
-  const due = s.hoursUtc.filter(h => h <= hour);
-  if (!due.length) return;
-  const slot = due[due.length - 1]; // only the latest slot that has come due; missed earlier slots are skipped
   autoBusy = true;
   try {
     const docs = await allDoctrines();
-    // agents named in AUTO_DOCTRINES always play, on top of any list saved from the dashboard
+    // agents named in AUTO_DOCTRINES always play, on top of any list saved from the dashboard; a doctrine with its own PLAY HOURS line always plays on its own hours
     const wanted = [...new Set(s.doctrines.concat(DEFAULT_SETTINGS.doctrines))];
-    const slugs = wanted.length ? wanted.filter(x => docs[x]) : Object.keys(docs);
+    const own = Object.keys(docs).filter(x => docMeta(docs[x].text).hours.length);
+    const slugs = [...new Set(own.concat(wanted.length ? wanted.filter(x => docs[x]) : Object.keys(docs)))];
     for (const slug of slugs) {
+      const hrs = docMeta(docs[slug].text).hours;
+      const due = (hrs.length ? hrs : s.hoursUtc).filter(h => h <= hour);
+      if (!due.length) continue;
+      const slot = due[due.length - 1]; // only the latest slot that has come due; missed earlier slots are skipped
       const id = agentIdFor(slug, s.model);
       const k = 'dq:lastauto:' + id;
       if ((await store.get(k)) === day + '@' + slot) continue;
@@ -625,6 +690,9 @@ async function route(req, res) {
 
   if (p === '/api/meta' && req.method === 'GET') {
     return send(res, 200, { models: MODELS, defaultModel: DEFAULT_MODEL, testbed: TESTBED_SITE, testbedRepo: TESTBED_REPO, sandboxRepo: SANDBOX_REPO, settings: await settings() });
+  }
+  if (p === '/api/commissions' && req.method === 'GET') {
+    return send(res, 200, { current: await getJ('dq:commission', null) });
   }
   if (p === '/api/doctrines' && req.method === 'GET') {
     const docs = await allDoctrines();
