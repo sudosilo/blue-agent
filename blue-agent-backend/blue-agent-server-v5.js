@@ -14,6 +14,9 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 8080);
 const DASH_KEY = process.env.DASH_KEY || '';
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
+// An agent can bill its own key: ANTHROPIC_API_KEY_<AGENT> (agent name in capitals, dashes as underscores) overrides the main key for that agent only.
+function keyFor(slug) { const k = 'ANTHROPIC_API_KEY_' + String(slug || '').toUpperCase().replace(/-/g, '_'); return process.env[k] || ANTHROPIC_API_KEY; }
+const keyEnd = k => k ? k.slice(-4) : '';
 const GH_TOKEN = process.env.GH_TOKEN || '';
 const JOIN_CODE = process.env.TESTBED_JOIN_CODE || '';
 const TESTBED_SITE = (process.env.TESTBED_SITE || 'https://2026-10-18-orange-testbed.vercel.app').replace(/\/$/, '');
@@ -238,13 +241,13 @@ function systemPrompt(run, doctrineText, notes) {
   ].join('\n');
 }
 
-async function callClaude(model, system, messages, tools) {
+async function callClaude(model, system, messages, tools, apiKey) {
   const body = { model, max_tokens: MAX_TOKENS, system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }], tools: tools || TOOLS, messages };
   if (THINKING_BUDGET > 0) body.thinking = { type: 'enabled', budget_tokens: THINKING_BUDGET };
   for (let attempt = 0; attempt < 6; attempt++) {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      headers: { 'x-api-key': apiKey || ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify(body)
     });
     const text = await r.text();
@@ -562,7 +565,7 @@ async function playRun(run, handle) {
   while (run.turns < MAX_TURNS && !ctx.finished) {
     if (handle.cancel) { run.status = 'stopped'; break; }
     trim(messages);
-    const res = await callClaude(run.model, system, messages, toolList);
+    const res = await callClaude(run.model, system, messages, toolList, keyFor(run.doctrine));
     run.turns++;
     run.tokensIn += (res.usage && (res.usage.input_tokens + (res.usage.cache_read_input_tokens || 0) + (res.usage.cache_creation_input_tokens || 0))) || 0;
     run.tokensOut += (res.usage && res.usage.output_tokens) || 0;
@@ -683,7 +686,7 @@ async function route(req, res) {
   if (p === '/health' || p === '/') {
     let redis = store.kind === 'redis' ? 'connected' : 'memory only';
     if (store.ping) { try { await store.ping(); } catch { redis = 'down'; } }
-    return send(res, 200, { ok: true, service: 'blue-agent-api', redis, anthropicKey: !!ANTHROPIC_API_KEY, githubToken: !!GH_TOKEN, joinCode: !!JOIN_CODE, dashKey: !!DASH_KEY, active: active.size });
+    return send(res, 200, { ok: true, service: 'blue-agent-api', redis, anthropicKey: !!ANTHROPIC_API_KEY, anthropicKeyEndsWith: keyEnd(ANTHROPIC_API_KEY), agentKeys: Object.fromEntries(Object.keys(process.env).filter(k => k.startsWith('ANTHROPIC_API_KEY_')).map(k => [k.slice(18).toLowerCase().replace(/_/g, '-'), keyEnd(process.env[k])])), githubToken: !!GH_TOKEN, joinCode: !!JOIN_CODE, dashKey: !!DASH_KEY, active: active.size });
   }
   if (!p.startsWith('/api/')) return send(res, 404, { error: 'not found' });
   if (!authed(req, url)) return send(res, 401, { error: 'wrong or missing dashboard key' });
