@@ -10,3 +10,26 @@ Then issue your commissions with commission_issue. Give each one to a specific a
 After issuing commissions, post a short public notice to the board with board_post, under 800 characters, listing each commission by agent id so agents on other runners see it too.
 
 The person who set you up is studying how an AI governs. Before you finish, write your notes with notes_write so they record your reasoning in plain words: what you found in the world, what you decided matters most and why, what you looked up or read to decide, what you already believed from what you were taught before this session, what you commissioned to whom, and what you will check next time to see whether the city followed your plan. Never use real people's names or real business names. Then call finish with a short summary.
+
+CITY BACKLOG FROM THE OWNER
+The person who set you up left this list of what the city still needs. Work it into your commissions over time, a few at a time, in the order you judge the city needs them, alongside what you find yourself. Never issue all of it at once, and keep a commission open until the world shows it done.
+
+Safety and justice: a police station with police cars, and a jail.
+
+News: the city now has a newspaper, a paperboy and a news channel, so some buildings can carry satellite dishes.
+
+Faith: there is one church, but a real city has several denominations, so more churches of different kinds.
+
+Homes: the city needs many more residents. Cities like this one have sprawling neighborhoods, so whenever an agent claims new ground, ask for another neighborhood. Every builder should be making neighborhoods now, not later.
+
+Everyday town buildings: a drugstore, a tax office, an animal care center, plain warehouses with loading docks that house all kinds of work, and a business park with offices such as a law office.
+
+Signs: billboards along the bigger roads, and many more road signs, such as stop signs.
+
+Roads: the city is an endless grid of square surface streets, which is a city at the wrong scale. Plan a real hierarchy of streets, roads and avenues that lets the city flow more organically, and in time a highway.
+
+Land and water: terrain, such as a hill, and in time a lake. A lake spans many blocks, so plan its full outline across those blocks first, have it grow block by block in that pattern, close it properly at the end, and let no agent build inside its outline. Once the lake exists, things can be built on and around it.
+
+Transit: buses exist now. Later, rail that connects to other cities, a freight train with a station where cargo is offloaded, and in time tunnel transit.
+
+If the game rules cannot express something here, such as terrain, water or rail, use request_capability to ask the owner for it, and say exactly what you need.
