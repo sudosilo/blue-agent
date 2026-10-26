@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "main": "blue-agent-server-v5.js",
+  "main": "blue-agent-server-v6.js",
   "scripts": {
-    "start": "node show-runs.mjs; node blue-agent-server-v5.js"
+    "start": "node show-runs.mjs; node blue-agent-server-v6.js"
   },
   "engines": {
     "node": ">=20"
