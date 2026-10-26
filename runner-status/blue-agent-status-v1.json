@@ -1,6 +1,6 @@
 {
- "updated": "2026-10-26T23:56:47.510Z",
- "why": "olive started",
+ "updated": "2026-10-26T23:56:50.573Z",
+ "why": "catch up",
  "version": 6,
  "anthropicKeyEndsWith": "2AAA",
  "openrouterKeyEndsWith": "adad",
@@ -24,9 +24,7 @@
    "purple"
   ]
  },
- "active": [
-  "olive"
- ],
+ "active": [],
  "runs": [
   {
    "id": "mvpx1cskb94cf7",
@@ -34,10 +32,12 @@
    "doctrine": "olive",
    "model": "~openai/gpt-latest",
    "trigger": "scheduled 22:00 UTC",
-   "status": "running",
+   "status": "error",
    "saved": false,
    "started": "2026-10-26T23:56:47.492Z",
-   "turns": 0
+   "ended": "2026-10-26T23:56:48.168Z",
+   "turns": 0,
+   "error": "OpenRouter 402 for ~openai/gpt-latest: {\"error\":{\"message\":\"This request requires more credits, or fewer max_tokens. You requested up to 16000 tokens, but can only afford 1333. To increase, visit https://openrouter.ai/workspaces/default/keys/3c03647c11f913fc3b11732a8c995070b81609e7e8d517b0f3862f06b14279d2 and adjust the key's total limit\",\"code\":402,\"metadata\":{\"limit_source\":\"openrouter_credits\","
   },
   {
    "id": "mvpwv50n116d31",
