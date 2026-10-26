@@ -198,13 +198,15 @@ const TOOLS = [
   { name: 'board_read', description: 'Read the shared notes board in ' + NOTES_REPO + ' (board.md) where every agent posts what it built, what it plans, and what it asks of others.', input_schema: { type: 'object', properties: { offset: { type: 'integer' }, limit: { type: 'integer' } } } },
   { name: 'board_post', description: 'Post one entry, under 800 characters, at the bottom of the shared notes board under your agent id. Never post keys or personal details.', input_schema: { type: 'object', properties: { text: { type: 'string' } }, required: ['text'] } },
   { name: 'commission_issue', description: 'Governor only. Replace the standing commissions of the city government. Every other agent sees them at the start of its turn. Each commission names the agent id it goes to, or any, the work, the chunk or place, the priority from 1 (first) upward, and why the city needs it now.', input_schema: { type: 'object', properties: { summary: { type: 'string' }, commissions: { type: 'array', items: { type: 'object', properties: { agent: { type: 'string' }, work: { type: 'string' }, where: { type: 'string' }, priority: { type: 'integer' }, why: { type: 'string' } }, required: ['agent', 'work', 'priority', 'why'] } } }, required: ['summary', 'commissions'] } },
+  { name: 'water_orders_issue', description: 'Water authority only. Replace the standing water orders of the city. Every other agent, the governor and treasurer included, sees them at the start of its turn. Give the state of water, wastewater and treatment in the city, the water rights and usage rules, and orders: work you assign to a specific agent id, or any, such as a water main, a hydrant line, a treatment plant, a reservoir or a sewer line, with where, priority from 1 upward and why.', input_schema: { type: 'object', properties: { summary: { type: 'string' }, rules: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, rule: { type: 'string' }, why: { type: 'string' } }, required: ['name', 'rule', 'why'] } }, orders: { type: 'array', items: { type: 'object', properties: { agent: { type: 'string' }, work: { type: 'string' }, where: { type: 'string' }, priority: { type: 'integer' }, why: { type: 'string' } }, required: ['agent', 'work', 'priority', 'why'] } } }, required: ['summary', 'rules', 'orders'] } },
   { name: 'budget_issue', description: 'Treasurer only. Replace the standing city budget. Every other agent, the governor included, sees it at the start of its turn. Give the taxes the city levies, how the money is spent, and revenue requests: things you ask a specific agent id, or any, to build because they bring money into the city.', input_schema: { type: 'object', properties: { summary: { type: 'string' }, taxes: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, base: { type: 'string' }, rate: { type: 'string' }, why: { type: 'string' } }, required: ['name', 'rate', 'why'] } }, spending: { type: 'array', items: { type: 'object', properties: { item: { type: 'string' }, share: { type: 'string' }, why: { type: 'string' } }, required: ['item', 'share', 'why'] } }, revenue_requests: { type: 'array', items: { type: 'object', properties: { agent: { type: 'string' }, build: { type: 'string' }, where: { type: 'string' }, priority: { type: 'integer' }, revenue: { type: 'string' }, tradeoffs: { type: 'string' } }, required: ['agent', 'build', 'priority', 'revenue'] } } }, required: ['summary', 'taxes', 'spending', 'revenue_requests'] } },
   { name: 'finish', description: 'End your turn for today with a short summary of what you did and why.', input_schema: { type: 'object', properties: { summary: { type: 'string' } }, required: ['summary'] } }
 ];
 
 const GOVERNOR_TOOLS = new Set(['testbed_read_file', 'testbed_state', 'example_calls', 'sandbox_read_file', 'request_capability', 'notes_read', 'notes_write', 'board_read', 'board_post', 'commission_issue', 'finish']);
 const TREASURER_TOOLS = new Set(['testbed_read_file', 'testbed_state', 'example_calls', 'sandbox_read_file', 'request_capability', 'notes_read', 'notes_write', 'board_read', 'board_post', 'budget_issue', 'finish']);
-const toolsFor = role => role === 'governor' ? TOOLS.filter(t => GOVERNOR_TOOLS.has(t.name)) : role === 'treasurer' ? TOOLS.filter(t => TREASURER_TOOLS.has(t.name)) : TOOLS.filter(t => t.name !== 'commission_issue' && t.name !== 'budget_issue');
+const WATER_TOOLS = new Set(['testbed_read_file', 'testbed_state', 'example_calls', 'sandbox_read_file', 'request_capability', 'notes_read', 'notes_write', 'board_read', 'board_post', 'water_orders_issue', 'finish']);
+const toolsFor = role => role === 'governor' ? TOOLS.filter(t => GOVERNOR_TOOLS.has(t.name)) : role === 'treasurer' ? TOOLS.filter(t => TREASURER_TOOLS.has(t.name)) : role === 'water' ? TOOLS.filter(t => WATER_TOOLS.has(t.name)) : TOOLS.filter(t => t.name !== 'commission_issue' && t.name !== 'budget_issue' && t.name !== 'water_orders_issue');
 const CORE_PATHS = /^(\.github\/|engine\.js|index\.html|testbed\.json|agent-rules\.txt|steward-rules\.txt|vercel\.json|package\.json|api\/|scripts\/)/;
 const PRIV_TOOL = /^(steward_|judge_)/;
 
@@ -499,6 +501,18 @@ function makeTools(run, ctx) {
       await addEvent(run.id, { type: 'budget', budget: rec });
       return { issued: true, taxes: rec.taxes.length, spending: rec.spending.length, revenue_requests: rec.revenue_requests.length, note: 'Every agent on this runner, the governor included, sees this budget at the start of its next turn. Post a short version to the board so agents on other runners see it too.' };
     },
+    async water_orders_issue({ summary, rules, orders }) {
+      if (ctx.role !== 'water') return { error: 'only the water authority issues water orders' };
+      const arr = x => Array.isArray(x) ? x.slice(0, 30) : [];
+      const str = (v, n) => String(v || '').slice(0, n);
+      const rec = { by: run.agentId, runId: run.id, t: nowIso(), summary: str(summary, 2000),
+        rules: arr(rules).map(x => ({ name: str(x.name, 120), rule: str(x.rule, 600), why: str(x.why, 600) })),
+        orders: arr(orders).map(x => ({ agent: str(x.agent || 'any', 40), work: str(x.work, 600), where: str(x.where, 200), priority: Number(x.priority) || 9, why: str(x.why, 600) })).sort((a, b) => a.priority - b.priority) };
+      await setJ('dq:water', rec);
+      await store.lpush('dq:waters', JSON.stringify(rec));
+      await addEvent(run.id, { type: 'water', water: rec });
+      return { issued: true, rules: rec.rules.length, orders: rec.orders.length, note: 'Every agent on this runner, the governor and treasurer included, sees these water orders at the start of its next turn. Post a short version to the board so agents on other runners see it too.' };
+    },
     async finish({ summary }) { ctx.finished = true; run.summary = String(summary).slice(0, 4000); return { done: true }; }
   };
 }
@@ -579,7 +593,14 @@ async function playRun(run, handle) {
     const mineR = reqs.filter(c => c.agent === run.agentId || c.agent === run.doctrine).concat(reqs.filter(c => c.agent !== run.agentId && c.agent !== run.doctrine));
     budText = '\n\nCITY BUDGET FROM THE TREASURER (' + bud.by + ', issued ' + bud.t + ')\n' + (meta.role === 'treasurer' ? 'This is the budget you issued last time.\n' : meta.role === 'governor' ? 'The treasurer sets taxes and spending and asks for revenue builds. Weigh this budget when you order commissions. You still decide the commissions.\n' : 'The treasurer asks agents to build things that bring money into the city. Requests addressed to you or to any come first. Weigh them against the rules, the governor\'s commissions and your own instructions.\n') + bud.summary + '\nTaxes: ' + JSON.stringify(bud.taxes || []) + '\nSpending: ' + JSON.stringify(bud.spending || []) + '\nRevenue requests: ' + JSON.stringify(mineR);
   }
-  const messages = [{ role: 'user', content: opening + comText + budText }];
+  const wat = await getJ('dq:water', null);
+  let watText = '';
+  if (wat && wat.summary) {
+    const ords = (wat.orders || []);
+    const mineW = ords.filter(c => c.agent === run.agentId || c.agent === run.doctrine).concat(ords.filter(c => c.agent !== run.agentId && c.agent !== run.doctrine));
+    watText = '\n\nWATER ORDERS FROM THE WATER AUTHORITY (' + wat.by + ', issued ' + wat.t + ')\n' + (meta.role === 'water' ? 'These are the water orders you issued last time.\n' : meta.role === 'governor' ? 'The water authority runs water, wastewater and treatment and assigns water work. Weigh these orders when you order commissions. You still decide the commissions.\n' : meta.role === 'treasurer' ? 'The water authority runs water, wastewater and treatment. Budget for its orders and its utility fees.\n' : 'The water authority assigns water, wastewater and treatment work. Orders addressed to you or to any come first. Weigh them against the rules, the governor\'s commissions and your own instructions.\n') + wat.summary + '\nWater rules: ' + JSON.stringify(wat.rules || []) + '\nWater orders: ' + JSON.stringify(mineW);
+  }
+  const messages = [{ role: 'user', content: opening + comText + budText + watText }];
   const ctx = { draft: [], finished: false, role: meta.role };
   const toolList = toolsFor(meta.role);
   const tools = makeTools(run, ctx);
@@ -718,6 +739,9 @@ async function route(req, res) {
   }
   if (p === '/api/budget' && req.method === 'GET') {
     return send(res, 200, { current: await getJ('dq:budget', null) });
+  }
+  if (p === '/api/water' && req.method === 'GET') {
+    return send(res, 200, { current: await getJ('dq:water', null) });
   }
   if (p === '/api/commissions' && req.method === 'GET') {
     return send(res, 200, { current: await getJ('dq:commission', null) });
