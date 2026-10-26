@@ -613,7 +613,8 @@ async function startRun(doctrineSlug, model, trigger) {
     run.status = 'error'; run.error = String(e.message || e).slice(0, 1000); run.ended = nowIso();
     await addEvent(run.id, { type: 'error', text: run.error });
     await setJ('dq:run:' + run.id, run);
-  }).finally(() => active.delete(run.id));
+  }).finally(() => { active.delete(run.id); publishStatus(run.agentId + ' ' + (run.status || 'ended')); });
+  publishStatus(run.agentId + ' started');
   return run;
 }
 
@@ -703,6 +704,31 @@ async function playRun(run, handle) {
   const ag = await getJ('dq:agent:' + run.agentId, {});
   ag.lastRun = run.id; ag.doctrine = run.doctrine; ag.model = run.model;
   await setJ('dq:agent:' + run.agentId, ag);
+}
+
+
+// ---------- status mirror ----------
+// Writes the newest runs to runner-status/blue-agent-status-v1.json on the runner-status branch of the runner repo,
+// so problems can be read from GitHub without anyone opening the dashboard.
+const STATUS_REPO = process.env.STATUS_REPO || 'sudosilo/blue-agent';
+let statusBusy = false, statusAgain = false;
+async function publishStatus(why) {
+  if (!GH_TOKEN) return;
+  if (statusBusy) { statusAgain = true; return; }
+  statusBusy = true;
+  try {
+    const ids = await store.lrange('dq:runs', 0, 24);
+    const runs = [];
+    for (const id of ids) { const r = await getJ('dq:run:' + id, null); if (r) runs.push({ id: r.id, agent: r.agentId, doctrine: r.doctrine, model: r.model, trigger: r.trigger, status: r.status, saved: r.saved, started: r.started, ended: r.ended, turns: r.turns, error: r.error ? String(r.error).slice(0, 400) : undefined, summary: r.summary ? String(r.summary).slice(0, 300) : undefined }); }
+    const s = await settings();
+    const body = { updated: nowIso(), why, version: 6, anthropicKeyEndsWith: keyEnd(ANTHROPIC_API_KEY), perAgentAnthropicKeys: Object.fromEntries(Object.keys(process.env).filter(k => k.startsWith('ANTHROPIC_API_KEY_')).map(k => [k.slice(18).toLowerCase().replace(/_/g, '-'), keyEnd(process.env[k])])), agentKeyIds: Object.keys(AGENT_KEYS), settings: { autoDaily: s.autoDaily, hoursUtc: s.hoursUtc, model: s.model, doctrines: s.doctrines }, active: [...active.values()].map(a => a.agentId), runs };
+    const path = '/repos/' + STATUS_REPO + '/contents/runner-status/blue-agent-status-v1.json';
+    let ref = await gh('GET', '/repos/' + STATUS_REPO + '/git/ref/heads/runner-status');
+    if (!ref.ok) { const main = await gh('GET', '/repos/' + STATUS_REPO + '/git/ref/heads/main'); if (main.ok) await gh('POST', '/repos/' + STATUS_REPO + '/git/refs', { ref: 'refs/heads/runner-status', sha: main.json.object.sha }); }
+    const cur = await gh('GET', path + '?ref=runner-status');
+    await gh('PUT', path, { message: 'runner status: ' + why, branch: 'runner-status', content: Buffer.from(JSON.stringify(body, null, 1) + '\n').toString('base64'), sha: cur.ok ? cur.json.sha : undefined });
+  } catch (e) { console.error('status', e.message); }
+  finally { statusBusy = false; if (statusAgain) { statusAgain = false; setTimeout(() => publishStatus('catch up'), 2000); } }
 }
 
 // ---------- daily schedule ----------
@@ -887,6 +913,8 @@ for (const id of await store.lrange('dq:runs', 0, 49)) {
   if (r && r.status === 'running') { r.status = 'interrupted'; r.ended = nowIso(); await setJ('dq:run:' + id, r); }
 }
 setInterval(() => autoTick().catch(e => console.error('auto', e.message)), 5 * 60 * 1000);
+setTimeout(() => publishStatus('startup'), 15000);
+setInterval(() => publishStatus('hourly'), 60 * 60 * 1000);
 setTimeout(() => autoTick().catch(e => console.error('auto', e.message)), 20000);
 http.createServer((req, res) => route(req, res).catch(e => send(res, 500, { error: String(e.message || e) }))).listen(PORT, () => {
   console.log('blue-agent-api listening on ' + PORT + ' with ' + store.kind + ' storage');
