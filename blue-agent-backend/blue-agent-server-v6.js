@@ -102,7 +102,7 @@ function docMeta(text) {
   return { hours, role: r ? r[1] : '', model: mm ? mm[1] : '' };
 }
 const modelShort = m => (m.match(/claude-([a-z]+)/) || [, String(m).split('/').pop().replace(/^~/, '').replace(/[^a-z0-9]+/g, '-').split('-').slice(0, 2).join('-') || 'm'])[1];
-const agentIdFor = (slug, model) => AGENT_KEYS[slug] ? slug : ('dq-' + slug + '-' + modelShort(model)).slice(0, 32);
+const agentIdFor = (slug, model) => AGENT_KEYS[slug] || String(model).includes('/') ? slug : ('dq-' + slug + '-' + modelShort(model)).slice(0, 32);
 
 // ---------- small helpers ----------
 
@@ -840,6 +840,9 @@ async function autoTick() {
       try {
         const run = await startRun(slug, model, 'scheduled ' + String(slot).padStart(2, '0') + ':00 UTC');
         while (active.has(run.id)) await sleep(5000);
+        // a turn that died because an account had no money is retried on the next check instead of waiting for the next slot
+        const done = await getJ('dq:run:' + run.id, {});
+        if (done.status === 'error' && /credit|402|billing|afford/i.test(String(done.error || ''))) await store.del(k);
       } catch (e) { console.error('auto', slug, e.message); }
     }
   } finally { autoBusy = false; }
