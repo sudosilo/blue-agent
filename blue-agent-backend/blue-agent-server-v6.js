@@ -321,12 +321,16 @@ async function callOpenRouter(model, system, messages, tools) {
   }
   throw new Error('OpenRouter kept refusing after retries');
 }
+// Claude models always use their own Anthropic key. They only go through OpenRouter when OPENROUTER_FOR_CLAUDE=1 sends
+// all of them there, or OPENROUTER_FALLBACK=1 allows it when the Anthropic account has no credit.
+const OPENROUTER_FALLBACK = process.env.OPENROUTER_FALLBACK === '1';
 async function callModel(model, system, messages, tools, apiKey) {
   if (model.includes('/')) return callOpenRouter(model, system, messages, tools);
-  if (OPENROUTER_API_KEY && (OPENROUTER_FOR_CLAUDE || !(apiKey || ANTHROPIC_API_KEY) || Date.now() - anthropicBroke < 30 * 60 * 1000)) return callOpenRouter(model, system, messages, tools);
+  if (OPENROUTER_API_KEY && OPENROUTER_FOR_CLAUDE) return callOpenRouter(model, system, messages, tools);
+  if (OPENROUTER_API_KEY && OPENROUTER_FALLBACK && Date.now() - anthropicBroke < 30 * 60 * 1000) return callOpenRouter(model, system, messages, tools);
   try { return await callClaude(model, system, messages, tools, apiKey); }
   catch (e) {
-    if (OPENROUTER_API_KEY && /credit balance|billing|authentication_error|invalid x-api-key|Anthropic API 401/i.test(String(e.message))) { anthropicBroke = Date.now(); return callOpenRouter(model, system, messages, tools); }
+    if (OPENROUTER_API_KEY && OPENROUTER_FALLBACK && /credit balance|billing/i.test(String(e.message))) { anthropicBroke = Date.now(); return callOpenRouter(model, system, messages, tools); }
     throw e;
   }
 }
@@ -787,7 +791,7 @@ async function publishStatus(why) {
     const runs = [];
     for (const id of ids) { const r = await getJ('dq:run:' + id, null); if (r) runs.push({ id: r.id, via: r.via, agent: r.agentId, doctrine: r.doctrine, model: r.model, trigger: r.trigger, status: r.status, saved: r.saved, started: r.started, ended: r.ended, turns: r.turns, error: r.error ? String(r.error).slice(0, 400) : undefined, summary: r.summary ? String(r.summary).slice(0, 300) : undefined }); }
     const s = await settings();
-    const body = { updated: nowIso(), why, version: 6, anthropicKeyEndsWith: keyEnd(ANTHROPIC_API_KEY), openrouterKeyEndsWith: keyEnd(OPENROUTER_API_KEY), openrouterForClaude: OPENROUTER_FOR_CLAUDE, perAgentAnthropicKeys: Object.fromEntries(Object.keys(process.env).filter(k => k.startsWith('ANTHROPIC_API_KEY_')).map(k => [k.slice(18).toLowerCase().replace(/_/g, '-'), keyEnd(process.env[k])])), agentKeyIds: Object.keys(AGENT_KEYS), settings: { autoDaily: s.autoDaily, hoursUtc: s.hoursUtc, model: s.model, doctrines: s.doctrines }, active: [...active.values()].map(a => a.agentId), runs };
+    const body = { updated: nowIso(), why, version: 6, anthropicKeyEndsWith: keyEnd(ANTHROPIC_API_KEY), openrouterKeyEndsWith: keyEnd(OPENROUTER_API_KEY), openrouterForClaude: OPENROUTER_FOR_CLAUDE, openrouterFallback: process.env.OPENROUTER_FALLBACK === '1', perAgentAnthropicKeys: Object.fromEntries(Object.keys(process.env).filter(k => k.startsWith('ANTHROPIC_API_KEY_')).map(k => [k.slice(18).toLowerCase().replace(/_/g, '-'), keyEnd(process.env[k])])), agentKeyIds: Object.keys(AGENT_KEYS), settings: { autoDaily: s.autoDaily, hoursUtc: s.hoursUtc, model: s.model, doctrines: s.doctrines }, active: [...active.values()].map(a => a.agentId), runs };
     const path = '/repos/' + STATUS_REPO + '/contents/runner-status/blue-agent-status-v1.json';
     let ref = await gh('GET', '/repos/' + STATUS_REPO + '/git/ref/heads/runner-status');
     if (!ref.ok) { const main = await gh('GET', '/repos/' + STATUS_REPO + '/git/ref/heads/main'); if (main.ok) await gh('POST', '/repos/' + STATUS_REPO + '/git/refs', { ref: 'refs/heads/runner-status', sha: main.json.object.sha }); }
