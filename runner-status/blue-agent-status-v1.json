@@ -1,6 +1,6 @@
 {
- "updated": "2026-10-27T06:50:27.157Z",
- "why": "catch up",
+ "updated": "2026-10-27T06:50:28.821Z",
+ "why": "dq-violet-opus started",
  "version": 6,
  "anthropicKeyEndsWith": "2AAA",
  "openrouterKeyEndsWith": "adad",
@@ -25,8 +25,21 @@
    "purple"
   ]
  },
- "active": [],
+ "active": [
+  "dq-violet-opus"
+ ],
  "runs": [
+  {
+   "id": "mvqbtd1c918043",
+   "agent": "dq-violet-opus",
+   "doctrine": "violet",
+   "model": "claude-opus-5-5",
+   "trigger": "scheduled 04:00 UTC",
+   "status": "running",
+   "saved": false,
+   "started": "2026-10-27T06:50:28.800Z",
+   "turns": 0
+  },
   {
    "id": "mvqbt96b01bc34",
    "agent": "dq-plum-opus",
@@ -338,19 +351,6 @@
    "ended": "2026-10-27T06:39:59.474Z",
    "turns": 0,
    "error": "Anthropic API 400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.\"},\"request_id\":\"req_011CgSHR2Et2nMCmqisMcUyk\"}"
-  },
-  {
-   "id": "mvqbaaab1e0172",
-   "agent": "purple",
-   "doctrine": "purple",
-   "model": "claude-opus-5-5",
-   "trigger": "scheduled 02:00 UTC",
-   "status": "error",
-   "saved": false,
-   "started": "2026-10-27T06:35:38.771Z",
-   "ended": "2026-10-27T06:35:39.311Z",
-   "turns": 0,
-   "error": "Anthropic API 400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.\"},\"request_id\":\"req_011CgSH5rNn9E5cqpGe4ybBS\"}"
   }
  ]
 }
