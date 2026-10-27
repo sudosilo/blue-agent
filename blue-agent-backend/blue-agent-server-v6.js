@@ -829,14 +829,15 @@ async function autoTick() {
     const slugs = [...new Set(own.concat(wanted.length ? wanted.filter(x => docs[x]) : Object.keys(docs)))];
     for (const slug of slugs) {
       const hrs = docMeta(docs[slug].text).hours;
-      const due = (hrs.length ? hrs : s.hoursUtc).filter(h => h <= hour);
-      if (!due.length) continue;
-      const slot = due[due.length - 1]; // only the latest slot that has come due; missed earlier slots are skipped
+      const list = hrs.length ? hrs : s.hoursUtc, due = list.filter(h => h <= hour);
+      // only the latest slot that has come due; just after midnight UTC that is yesterday's last slot, so a turn missed late in the day still plays
+      const slot = due.length ? due[due.length - 1] : list[list.length - 1];
+      const slotDay = due.length ? day : new Date(Date.now() - 86400000).toISOString().slice(0, 10);
       const model = docMeta(docs[slug].text).model || s.model;
       const id = agentIdFor(slug, model);
       const k = 'dq:lastauto:' + id;
-      if ((await store.get(k)) === day + '@' + slot) continue;
-      await store.set(k, day + '@' + slot);
+      if ((await store.get(k)) === slotDay + '@' + slot) continue;
+      await store.set(k, slotDay + '@' + slot);
       try {
         const run = await startRun(slug, model, 'scheduled ' + String(slot).padStart(2, '0') + ':00 UTC');
         while (active.has(run.id)) await sleep(5000);
