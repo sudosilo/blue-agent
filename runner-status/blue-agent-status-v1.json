@@ -1,10 +1,11 @@
 {
- "updated": "2026-10-27T01:15:27.271Z",
+ "updated": "2026-10-27T01:17:24.919Z",
  "why": "startup",
  "version": 6,
  "anthropicKeyEndsWith": "2AAA",
  "openrouterKeyEndsWith": "adad",
  "openrouterForClaude": true,
+ "openrouterFallback": false,
  "perAgentAnthropicKeys": {},
  "agentKeyIds": [
   "blue",
