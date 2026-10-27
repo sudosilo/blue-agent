@@ -843,7 +843,7 @@ async function autoTick() {
         while (active.has(run.id)) await sleep(5000);
         // a turn that died because an account had no money is retried on the next check instead of waiting for the next slot
         const done = await getJ('dq:run:' + run.id, {});
-        if (done.status === 'error' && /credit|402|billing|afford/i.test(String(done.error || ''))) await store.del(k);
+        if (done.status === 'error' && /credit|402|billing|afford|limit exceeded/i.test(String(done.error || ''))) await store.del(k);
       } catch (e) { console.error('auto', slug, e.message); }
     }
   } finally { autoBusy = false; }
