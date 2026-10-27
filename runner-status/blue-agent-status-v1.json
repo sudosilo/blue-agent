@@ -1,6 +1,6 @@
 {
- "updated": "2026-10-27T00:42:13.483Z",
- "why": "detailer started",
+ "updated": "2026-10-27T00:42:27.900Z",
+ "why": "startup",
  "version": 6,
  "anthropicKeyEndsWith": "2AAA",
  "openrouterKeyEndsWith": "adad",
@@ -24,9 +24,7 @@
    "purple"
   ]
  },
- "active": [
-  "detailer"
- ],
+ "active": [],
  "runs": [
   {
    "id": "mvpyns5o395a0c",
