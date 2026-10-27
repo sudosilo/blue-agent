@@ -1,6 +1,6 @@
 {
- "updated": "2026-10-27T02:00:00.881Z",
- "why": "catch up",
+ "updated": "2026-10-27T02:00:02.745Z",
+ "why": "olive started",
  "version": 6,
  "anthropicKeyEndsWith": "2AAA",
  "openrouterKeyEndsWith": "adad",
@@ -25,8 +25,21 @@
    "purple"
   ]
  },
- "active": [],
+ "active": [
+  "olive"
+ ],
  "runs": [
+  {
+   "id": "mvq1fuzi62d173",
+   "agent": "olive",
+   "doctrine": "olive",
+   "model": "~openai/gpt-latest",
+   "trigger": "scheduled 01:00 UTC",
+   "status": "running",
+   "saved": false,
+   "started": "2026-10-27T02:00:02.718Z",
+   "turns": 0
+  },
   {
    "id": "mvq1fr469bbc9f",
    "agent": "detailer",
@@ -338,19 +351,6 @@
    "ended": "2026-10-27T01:30:23.118Z",
    "turns": 0,
    "error": "OpenRouter 403 for ~openai/gpt-latest: {\"error\":{\"message\":\"Key limit exceeded (total limit). Manage it using https://openrouter.ai/workspaces/default/keys/3c03647c11f913fc3b11732a8c995070b81609e7e8d517b0f3862f06b14279d2 $6.23 of $5.00 used; does not reset.\",\"code\":403,\"metadata\":{\"limit_source\":\"openrouter_key_limit\",\"remedy_hint\":\"Raise or remove this API key's usage limit at https://openrouter."
-  },
-  {
-   "id": "mvq0doz78e96f5",
-   "agent": "dq-lilac-sonnet",
-   "doctrine": "lilac",
-   "model": "claude-sonnet-5-5",
-   "trigger": "dashboard",
-   "status": "error",
-   "saved": false,
-   "started": "2026-10-27T01:30:22.003Z",
-   "ended": "2026-10-27T01:30:22.638Z",
-   "turns": 0,
-   "error": "Anthropic API 400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.\"},\"request_id\":\"req_011CgRsoemeof974fQv7G83Y\"}"
   }
  ]
 }
