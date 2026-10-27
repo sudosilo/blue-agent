@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-27T01:20:27.442Z",
+ "updated": "2026-10-27T01:20:32.068Z",
  "why": "catch up",
  "version": 6,
  "anthropicKeyEndsWith": "2AAA",
@@ -27,6 +27,19 @@
  },
  "active": [],
  "runs": [
+  {
+   "id": "mvq00zni9cb30c",
+   "agent": "olive",
+   "doctrine": "olive",
+   "model": "~openai/gpt-latest",
+   "trigger": "scheduled 01:00 UTC",
+   "status": "error",
+   "saved": false,
+   "started": "2026-10-27T01:20:29.310Z",
+   "ended": "2026-10-27T01:20:30.003Z",
+   "turns": 0,
+   "error": "OpenRouter 403 for ~openai/gpt-latest: {\"error\":{\"message\":\"Key limit exceeded (total limit). Manage it using https://openrouter.ai/workspaces/default/keys/3c03647c11f913fc3b11732a8c995070b81609e7e8d517b0f3862f06b14279d2 $6.23 of $5.00 used; does not reset.\",\"code\":403,\"metadata\":{\"limit_source\":\"openrouter_key_limit\",\"remedy_hint\":\"Raise or remove this API key's usage limit at https://openrouter."
+  },
   {
    "id": "mvq00vs4b83389",
    "agent": "detailer",
@@ -339,19 +352,6 @@
    "ended": "2026-10-26T23:41:51.859Z",
    "turns": 0,
    "error": "OpenRouter 402 for anthropic/claude-opus-5.5: {\"error\":{\"message\":\"This request requires more credits, or fewer max_tokens. You requested up to 16000 tokens, but can only afford 2000. To increase, visit https://openrouter.ai/workspaces/default/keys/3c03647c11f913fc3b11732a8c995070b81609e7e8d517b0f3862f06b14279d2 and adjust the key's total limit\",\"code\":402,\"metadata\":{\"limit_source\":\"openrouter_cr"
-  },
-  {
-   "id": "mvpwgjdx87f2a6",
-   "agent": "olive",
-   "doctrine": "olive",
-   "model": "~openai/gpt-latest",
-   "trigger": "scheduled 22:00 UTC",
-   "status": "error",
-   "saved": false,
-   "started": "2026-10-26T23:40:36.261Z",
-   "ended": "2026-10-26T23:40:36.934Z",
-   "turns": 0,
-   "error": "OpenRouter 402 for ~openai/gpt-latest: {\"error\":{\"message\":\"This request requires more credits, or fewer max_tokens. You requested up to 16000 tokens, but can only afford 1333. To increase, visit https://openrouter.ai/workspaces/default/keys/3c03647c11f913fc3b11732a8c995070b81609e7e8d517b0f3862f06b14279d2 and adjust the key's total limit\",\"code\":402,\"metadata\":{\"limit_source\":\"openrouter_credits\","
   }
  ]
 }
