@@ -682,7 +682,7 @@ async function startRun(doctrineSlug, model, trigger) {
     run.status = 'error'; run.error = String(e.message || e).slice(0, 1000); run.ended = nowIso();
     await addEvent(run.id, { type: 'error', text: run.error });
     await setJ('dq:run:' + run.id, run);
-  }).finally(() => { active.delete(run.id); publishStatus(run.agentId + ' ' + (run.status || 'ended')); });
+  }).finally(async () => { active.delete(run.id); publishStatus(run.agentId + ' ' + (run.status || 'ended')); notifyRun(await getJ('dq:run:' + run.id, run)); });
   publishStatus(run.agentId + ' started');
   return run;
 }
@@ -776,6 +776,29 @@ async function playRun(run, handle) {
   await setJ('dq:agent:' + run.agentId, ag);
 }
 
+
+// ---------- phone notifications ----------
+// With NTFY_TOPIC set, every finished turn pushes a notification to the ntfy app subscribed to that topic.
+// Failures notify once per agent and reason every six hours, so a dead key does not buzz the phone all day.
+const NTFY_TOPIC = process.env.NTFY_TOPIC || '';
+const notified = new Map();
+async function notifyRun(run) {
+  if (!NTFY_TOPIC) return;
+  try {
+    const ok = run.status !== 'error' && run.status !== 'interrupted';
+    let reason = '';
+    if (!ok) {
+      const e = String(run.error || '');
+      reason = /credit balance/i.test(e) ? 'the Anthropic account is out of credit' : /limit exceeded|402|afford/i.test(e) ? 'the OpenRouter key is out of credit or at its limit' : e.slice(0, 160);
+      const k = run.agentId + '|' + reason;
+      if (Date.now() - (notified.get(k) || 0) < 6 * 3600 * 1000) return;
+      notified.set(k, Date.now());
+    }
+    const title = (run.agentId || 'agent') + (ok ? (run.saved ? ' saved a turn' : ' finished') : ' could not play');
+    const body = ok ? String(run.summary || run.status).slice(0, 400) : 'Turn failed because ' + reason + '.';
+    await fetch('https://ntfy.sh/' + encodeURIComponent(NTFY_TOPIC), { method: 'POST', headers: { 'Title': title, 'Tags': ok ? 'large_blue_circle' : 'warning', 'Priority': ok ? '3' : '4' }, body });
+  } catch (e) { console.error('notify', e.message); }
+}
 
 // ---------- status mirror ----------
 // Writes the newest runs to runner-status/blue-agent-status-v1.json on the runner-status branch of the runner repo,
