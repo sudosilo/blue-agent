@@ -1,6 +1,6 @@
 {
- "updated": "2026-10-27T16:10:12.123Z",
- "why": "catch up",
+ "updated": "2026-10-27T16:10:19.876Z",
+ "why": "olive started",
  "version": 6,
  "anthropicKeyEndsWith": "2AAA",
  "openrouterKeyEndsWith": "adad",
@@ -25,8 +25,34 @@
    "purple"
   ]
  },
- "active": [],
+ "active": [
+  "olive"
+ ],
  "runs": [
+  {
+   "id": "mvqvtc269c74a4",
+   "agent": "olive",
+   "doctrine": "olive",
+   "model": "~openai/gpt-latest",
+   "trigger": "scheduled 15:00 UTC",
+   "status": "running",
+   "saved": false,
+   "started": "2026-10-27T16:10:19.854Z",
+   "turns": 0
+  },
+  {
+   "id": "mvqvt87091a172",
+   "agent": "dq-lilac-opus",
+   "doctrine": "lilac",
+   "model": "claude-opus-5-5",
+   "trigger": "scheduled 11:00 UTC",
+   "status": "error",
+   "saved": false,
+   "started": "2026-10-27T16:10:14.844Z",
+   "ended": "2026-10-27T16:10:15.579Z",
+   "turns": 0,
+   "error": "Anthropic API 400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.\"},\"request_id\":\"req_011CgT2uFD2zbQsHLdAFtfYq\"}"
+  },
   {
    "id": "mvqvt4bqb3688e",
    "agent": "dq-lavender-opus",
@@ -325,32 +351,6 @@
    "ended": "2026-10-27T15:55:35.464Z",
    "turns": 0,
    "error": "Anthropic API 400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.\"},\"request_id\":\"req_011CgT1nNHNJHrUo3WwUCJvD\"}"
-  },
-  {
-   "id": "mvqva9ah8885da",
-   "agent": "dq-violet-opus",
-   "doctrine": "violet",
-   "model": "claude-opus-5-5",
-   "trigger": "scheduled 12:00 UTC",
-   "status": "error",
-   "saved": false,
-   "started": "2026-10-27T15:55:29.801Z",
-   "ended": "2026-10-27T15:55:30.454Z",
-   "turns": 0,
-   "error": "Anthropic API 400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.\"},\"request_id\":\"req_011CgT1mzxiwLBC1GkxSRR6P\"}"
-  },
-  {
-   "id": "mvqva5fg01dce5",
-   "agent": "dq-plum-opus",
-   "doctrine": "plum",
-   "model": "claude-opus-5-5",
-   "trigger": "scheduled 02:00 UTC",
-   "status": "error",
-   "saved": false,
-   "started": "2026-10-27T15:55:24.796Z",
-   "ended": "2026-10-27T15:55:25.410Z",
-   "turns": 0,
-   "error": "Anthropic API 400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.\"},\"request_id\":\"req_011CgT1mdNwB13D5T2UHaYRA\"}"
   }
  ]
 }
