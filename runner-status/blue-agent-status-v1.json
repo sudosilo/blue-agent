@@ -1,6 +1,6 @@
 {
- "updated": "2026-10-28T00:47:38.687Z",
- "why": "blue started",
+ "updated": "2026-10-28T00:47:41.845Z",
+ "why": "catch up",
  "version": 6,
  "anthropicKeyEndsWith": "2AAA",
  "openrouterKeyEndsWith": "adad",
@@ -25,9 +25,7 @@
    "purple"
   ]
  },
- "active": [
-  "blue"
- ],
+ "active": [],
  "runs": [
   {
    "id": "mvrealrk0efc10",
@@ -35,10 +33,12 @@
    "doctrine": "blue",
    "model": "claude-opus-5-5",
    "trigger": "scheduled 20:00 UTC",
-   "status": "running",
+   "status": "error",
    "saved": false,
    "started": "2026-10-28T00:47:38.672Z",
-   "turns": 0
+   "ended": "2026-10-28T00:47:39.213Z",
+   "turns": 0,
+   "error": "Anthropic API 400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.\"},\"request_id\":\"req_011CgTiMc1h8G8yBQbTD4tJh\"}"
   },
   {
    "id": "mvreahwf673d14",
