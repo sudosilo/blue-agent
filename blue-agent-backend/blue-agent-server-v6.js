@@ -98,8 +98,9 @@ function docMeta(text) {
   const h = t.match(/^PLAY HOURS UTC:\s*([0-9 ,]+)$/m);
   const r = t.match(/^ROLE:\s*([a-z-]+)\s*$/m);
   const mm = t.match(/^MODEL:\s*(\S+)\s*$/m);
+  const pd = t.match(/^RUNS PER DAY:\s*(\d+)\s*$/m);
   const hours = h ? [...new Set(h[1].split(/[\s,]+/).filter(Boolean).map(Number).filter(n => Number.isInteger(n) && n >= 0 && n < 24))].sort((x, y) => x - y) : [];
-  return { hours, role: r ? r[1] : '', model: mm ? mm[1] : '' };
+  return { hours, role: r ? r[1] : '', model: mm ? mm[1] : '', perDay: pd ? Number(pd[1]) : 0 };
 }
 const modelShort = m => (m.match(/claude-([a-z]+)/) || [, String(m).split('/').pop().replace(/^~/, '').replace(/[^a-z0-9]+/g, '-').split('-').slice(0, 2).join('-') || 'm'])[1];
 const agentIdFor = (slug, model) => AGENT_KEYS[slug] || String(model).includes('/') ? slug : ('dq-' + slug + '-' + modelShort(model)).slice(0, 32);
@@ -863,6 +864,11 @@ async function autoTick() {
       const model = docMeta(docs[slug].text).model || s.model;
       const id = agentIdFor(slug, model);
       const k = 'dq:lastauto:' + id;
+      // RUNS PER DAY caps scheduled turns per UTC day; the detailer is held to one a day whatever its doctrine says
+      const perDay = docMeta(docs[slug].text).perDay || (id === 'detailer' ? 1 : 0);
+      const dayKey = 'dq:autoday:' + id + ':' + day, retryKey = 'dq:autoretry:' + id;
+      if (perDay && Number(await store.get(dayKey) || 0) >= perDay) continue;
+      if (perDay && Number(await store.get(retryKey) || 0) > Date.now()) continue;
       if ((await store.get(k)) === slotDay + '@' + slot) continue;
       await store.set(k, slotDay + '@' + slot);
       try {
@@ -870,7 +876,12 @@ async function autoTick() {
         while (active.has(run.id)) await sleep(5000);
         // a turn that died because an account had no money is retried on the next check instead of waiting for the next slot
         const done = await getJ('dq:run:' + run.id, {});
-        if (done.status === 'error' && /credit|402|billing|afford|limit exceeded/i.test(String(done.error || ''))) await store.del(k);
+        const noMoney = done.status === 'error' && /credit|402|billing|afford|limit exceeded/i.test(String(done.error || ''));
+        if (perDay) {
+          // a turn that never got going because of money does not use up the day, but it waits an hour before trying again
+          if (noMoney && !done.turns) { await store.del(k); await store.set(retryKey, String(Date.now() + 3600000)); }
+          else await store.set(dayKey, String(Number(await store.get(dayKey) || 0) + 1));
+        } else if (noMoney) await store.del(k);
       } catch (e) { console.error('auto', slug, e.message); }
     }
   } finally { autoBusy = false; }
