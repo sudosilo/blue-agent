@@ -1,6 +1,6 @@
 {
- "updated": "2026-11-01T17:47:51.934Z",
- "why": "catch up",
+ "updated": "2026-11-01T17:52:48.597Z",
+ "why": "olive started",
  "version": 6,
  "anthropicKeyEndsWith": "2AAA",
  "openrouterKeyEndsWith": "adad",
@@ -25,8 +25,21 @@
    "purple"
   ]
  },
- "active": [],
+ "active": [
+  "olive"
+ ],
  "runs": [
+  {
+   "id": "mvy4odqw7ad4a5",
+   "agent": "olive",
+   "doctrine": "olive",
+   "model": "~openai/gpt-latest",
+   "trigger": "scheduled 15:00 UTC",
+   "status": "running",
+   "saved": false,
+   "started": "2026-11-01T17:52:48.536Z",
+   "turns": 0
+  },
   {
    "id": "mvy4hy953b9e0b",
    "agent": "olive",
@@ -338,19 +351,6 @@
    "ended": "2026-11-01T16:32:48.827Z",
    "turns": 0,
    "error": "Anthropic API 401: {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CgcXfaj43zfdN6FoSsWUh\"}"
-  },
-  {
-   "id": "mvy1nth0941e29",
-   "agent": "purple",
-   "doctrine": "purple",
-   "model": "claude-opus-5-5",
-   "trigger": "scheduled 14:00 UTC",
-   "status": "error",
-   "saved": false,
-   "started": "2026-11-01T16:28:23.412Z",
-   "ended": "2026-11-01T16:28:24.040Z",
-   "turns": 0,
-   "error": "Anthropic API 400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.\"},\"request_id\":\"req_011CgcXL4Sd5LUE3Ndcbdzxt\"}"
   }
  ]
 }
