@@ -1,6 +1,6 @@
 {
- "updated": "2026-11-05T19:48:08.236Z",
- "why": "catch up",
+ "updated": "2026-11-05T19:53:04.236Z",
+ "why": "olive started",
  "version": 6,
  "anthropicKeyEndsWith": "2AAA",
  "openrouterKeyEndsWith": "adad",
@@ -25,8 +25,21 @@
    "purple"
   ]
  },
- "active": [],
+ "active": [
+  "olive"
+ ],
  "runs": [
+  {
+   "id": "mw3yqg1jd1ba7e",
+   "agent": "olive",
+   "doctrine": "olive",
+   "model": "~openai/gpt-latest",
+   "trigger": "scheduled 15:00 UTC",
+   "status": "running",
+   "saved": false,
+   "started": "2026-11-05T19:53:04.183Z",
+   "turns": 0
+  },
   {
    "id": "mw3yk0jna213d2",
    "agent": "olive",
@@ -338,19 +351,6 @@
    "ended": "2026-11-05T18:03:09.908Z",
    "turns": 0,
    "error": "Anthropic API 401: {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CgkDnredyNV2KXHeP6Lro\"}"
-  },
-  {
-   "id": "mw3usz8zc1d47a",
-   "agent": "dq-lavender-opus",
-   "doctrine": "lavender",
-   "model": "claude-opus-5-5",
-   "trigger": "scheduled 18:00 UTC",
-   "status": "error",
-   "saved": false,
-   "started": "2026-11-05T18:03:03.923Z",
-   "ended": "2026-11-05T18:03:04.649Z",
-   "turns": 0,
-   "error": "Anthropic API 401: {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011CgkDnU94CNuSNqTxGQNcA\"}"
   }
  ]
 }
