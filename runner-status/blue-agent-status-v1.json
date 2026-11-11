@@ -1,5 +1,5 @@
 {
- "updated": "2026-11-11T13:03:32.267Z",
+ "updated": "2026-11-11T13:03:36.761Z",
  "why": "catch up",
  "version": 6,
  "anthropicKeyEndsWith": "2AAA",
@@ -27,6 +27,19 @@
  },
  "active": [],
  "runs": [
+  {
+   "id": "mwc4qwj6f54839",
+   "agent": "olive",
+   "doctrine": "olive",
+   "model": "~openai/gpt-latest",
+   "trigger": "scheduled 01:00 UTC",
+   "status": "error",
+   "saved": false,
+   "started": "2026-11-11T13:03:32.658Z",
+   "ended": "2026-11-11T13:03:34.261Z",
+   "turns": 0,
+   "error": "OpenRouter 403 for ~openai/gpt-latest: {\"error\":{\"message\":\"Key limit exceeded (total limit). Manage it using https://openrouter.ai/workspaces/default/keys/3c03647c11f913fc3b11732a8c995070b81609e7e8d517b0f3862f06b14279d2 $6.23 of $5.00 used; does not reset.\",\"code\":403,\"metadata\":{\"limit_source\":\"openrouter_key_limit\",\"remedy_hint\":\"Raise or remove this API key's usage limit at https://openrouter."
+  },
   {
    "id": "mwc4qsng0b25d5",
    "agent": "detailer",
@@ -336,19 +349,6 @@
    "saved": false,
    "started": "2026-11-11T11:13:27.272Z",
    "ended": "2026-11-11T11:13:27.922Z",
-   "turns": 0,
-   "error": "OpenRouter 403 for ~openai/gpt-latest: {\"error\":{\"message\":\"Key limit exceeded (total limit). Manage it using https://openrouter.ai/workspaces/default/keys/3c03647c11f913fc3b11732a8c995070b81609e7e8d517b0f3862f06b14279d2 $6.23 of $5.00 used; does not reset.\",\"code\":403,\"metadata\":{\"limit_source\":\"openrouter_key_limit\",\"remedy_hint\":\"Raise or remove this API key's usage limit at https://openrouter."
-  },
-  {
-   "id": "mwc0mwar56c790",
-   "agent": "olive",
-   "doctrine": "olive",
-   "model": "~openai/gpt-latest",
-   "trigger": "scheduled 01:00 UTC",
-   "status": "error",
-   "saved": false,
-   "started": "2026-11-11T11:08:27.267Z",
-   "ended": "2026-11-11T11:08:28.008Z",
    "turns": 0,
    "error": "OpenRouter 403 for ~openai/gpt-latest: {\"error\":{\"message\":\"Key limit exceeded (total limit). Manage it using https://openrouter.ai/workspaces/default/keys/3c03647c11f913fc3b11732a8c995070b81609e7e8d517b0f3862f06b14279d2 $6.23 of $5.00 used; does not reset.\",\"code\":403,\"metadata\":{\"limit_source\":\"openrouter_key_limit\",\"remedy_hint\":\"Raise or remove this API key's usage limit at https://openrouter."
   }
