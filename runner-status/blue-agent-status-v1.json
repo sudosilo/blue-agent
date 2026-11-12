@@ -1,6 +1,6 @@
 {
- "updated": "2026-11-12T18:03:40.826Z",
- "why": "catch up",
+ "updated": "2026-11-12T18:03:42.492Z",
+ "why": "olive started",
  "version": 6,
  "anthropicKeyEndsWith": "2AAA",
  "openrouterKeyEndsWith": "adad",
@@ -25,8 +25,21 @@
    "purple"
   ]
  },
- "active": [],
+ "active": [
+  "olive"
+ ],
  "runs": [
+  {
+   "id": "mwduwrmob5ed77",
+   "agent": "olive",
+   "doctrine": "olive",
+   "model": "~openai/gpt-latest",
+   "trigger": "scheduled 15:00 UTC",
+   "status": "running",
+   "saved": false,
+   "started": "2026-11-12T18:03:42.432Z",
+   "turns": 0
+  },
   {
    "id": "mwduwnrb4bc179",
    "agent": "dq-lilac-opus",
@@ -336,19 +349,6 @@
    "saved": false,
    "started": "2026-11-12T16:13:31.918Z",
    "ended": "2026-11-12T16:13:32.770Z",
-   "turns": 0,
-   "error": "OpenRouter 403 for ~openai/gpt-latest: {\"error\":{\"message\":\"Key limit exceeded (total limit). Manage it using https://openrouter.ai/workspaces/default/keys/3c03647c11f913fc3b11732a8c995070b81609e7e8d517b0f3862f06b14279d2 $6.23 of $5.00 used; does not reset.\",\"code\":403,\"metadata\":{\"limit_source\":\"openrouter_key_limit\",\"remedy_hint\":\"Raise or remove this API key's usage limit at https://openrouter."
-  },
-  {
-   "id": "mwdqsnfc715d02",
-   "agent": "olive",
-   "doctrine": "olive",
-   "model": "~openai/gpt-latest",
-   "trigger": "scheduled 15:00 UTC",
-   "status": "error",
-   "saved": false,
-   "started": "2026-11-12T16:08:31.896Z",
-   "ended": "2026-11-12T16:08:36.152Z",
    "turns": 0,
    "error": "OpenRouter 403 for ~openai/gpt-latest: {\"error\":{\"message\":\"Key limit exceeded (total limit). Manage it using https://openrouter.ai/workspaces/default/keys/3c03647c11f913fc3b11732a8c995070b81609e7e8d517b0f3862f06b14279d2 $6.23 of $5.00 used; does not reset.\",\"code\":403,\"metadata\":{\"limit_source\":\"openrouter_key_limit\",\"remedy_hint\":\"Raise or remove this API key's usage limit at https://openrouter."
   }
