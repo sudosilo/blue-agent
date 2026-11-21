@@ -1,5 +1,7 @@
 Blue Agent changelog
 
+2026-11-17, v2026.11.17. The detailer now uses its own Anthropic key for each agent. The deploy script now builds in the Railway login and the DNS fix.
+
 2026-10-29, v2026.10.29. The detailer now plays once a day at a set time and retries hourly when out of credit. The deploy script fixes the phone DNS for the backend service.
 
 2026-10-28, v2026.10.28. The status branch no longer triggers a site deploy.
