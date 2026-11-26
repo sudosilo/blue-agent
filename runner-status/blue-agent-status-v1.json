@@ -1,6 +1,6 @@
 {
- "updated": "2026-11-26T15:40:44.785Z",
- "why": "catch up",
+ "updated": "2026-11-26T15:45:41.808Z",
+ "why": "olive started",
  "version": 6,
  "anthropicKeyEndsWith": "2AAA",
  "openrouterKeyEndsWith": "adad",
@@ -25,8 +25,21 @@
    "purple"
   ]
  },
- "active": [],
+ "active": [
+  "olive"
+ ],
  "runs": [
+  {
+   "id": "mwxq57kfe704cf",
+   "agent": "olive",
+   "doctrine": "olive",
+   "model": "~openai/gpt-latest",
+   "trigger": "scheduled 15:00 UTC",
+   "status": "running",
+   "saved": false,
+   "started": "2026-11-26T15:45:41.775Z",
+   "turns": 0
+  },
   {
    "id": "mwxpys2hd4e29a",
    "agent": "olive",
@@ -338,19 +351,6 @@
    "ended": "2026-11-26T14:00:42.286Z",
    "turns": 0,
    "error": "Anthropic API 401: {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_id\":\"req_011ChRfHiWMtNH9U4C4yQTfA\"}"
-  },
-  {
-   "id": "mwxm7qsb4c1663",
-   "agent": "olive",
-   "doctrine": "olive",
-   "model": "~openai/gpt-latest",
-   "trigger": "scheduled 01:00 UTC",
-   "status": "error",
-   "saved": false,
-   "started": "2026-11-26T13:55:41.531Z",
-   "ended": "2026-11-26T13:55:42.175Z",
-   "turns": 0,
-   "error": "OpenRouter 403 for ~openai/gpt-latest: {\"error\":{\"message\":\"Key limit exceeded (total limit). Manage it using https://openrouter.ai/workspaces/default/keys/3c03647c11f913fc3b11732a8c995070b81609e7e8d517b0f3862f06b14279d2 $6.23 of $5.00 used; does not reset.\",\"code\":403,\"metadata\":{\"limit_source\":\"openrouter_key_limit\",\"remedy_hint\":\"Raise or remove this API key's usage limit at https://openrouter."
   }
  ]
 }
